@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/go-zeromq/zmq4"
 	"log"
@@ -29,8 +28,9 @@ func main(){
 	clients = make(map[string] map[string] sockjs.Session)
 	//go clientHub()
 
-	go socketListener("BTC-IDR")
-	go socketListener("XRP-IDR")
+	//go socketListener("BTC-IDR")
+	//go socketListener("XRP-IDR")
+	go socketListener("BTC-IDR:ORDER_BOOK")
 
 	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, echoHandler)
 
@@ -97,10 +97,10 @@ func socketListener(rate string){
 		}
 		//msg.Frames[0] --> topic
 		//msg.Frames[1] --> message
-		var message Rate
-		_ = json.Unmarshal(msg.Frames[1], &message)
-		broadcastMessage(rate, "mainCurrency : "+message.MainCurrency)
-
+		//var message Rate
+		//_ = json.Unmarshal(msg.Frames[1], &message)
+		//broadcastMessage(rate, "mainCurrency : "+message.MainCurrency)
+		fmt.Println(msg)
 	}
 
 }
