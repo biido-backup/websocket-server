@@ -29,8 +29,8 @@ func main(){
 	//	log.Println(walletType)
 	//}
 
-	go zeromq.Listen("BTC-IDR", clients)
-	go zeromq.Listen("XRP-IDR", clients)
+	go zeromq.Listen("BTC-IDR:ORDER_BOOK", clients)
+	//go zeromq.Listen("XRP-IDR", clients)
 
 	err := websocket.ServeSocket(clients)
 	if err != nil {

@@ -55,6 +55,8 @@ func SockjsHandler(session sockjs.Session) {
 			unsubscribeClientToAllTopic(session.ID())
 			subscribeClientToTopic(subscriber.Topic, subscriber.Username, session)
 
+
+
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
 

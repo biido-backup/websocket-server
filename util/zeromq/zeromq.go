@@ -34,6 +34,16 @@ func Listen(topic string, clients *daos.Clients){
 		if err != nil {
 			log.Fatalf("could not receive message: %v", err)
 		}
+
+		//log.Println(msg)
+		//
+		//orderbook := daos.OrderBookFromJSONZeroMQ(msg.Bytes())
+
+		var orderbook daos.OrderBookZeroMQ;
+		json.Unmarshal(msg.Bytes(), &orderbook);
+
+		log.Println(orderbook)
+
 		//msg.Frames[0] --> topic
 		//msg.Frames[1] --> message
 		var message daos.Rate
