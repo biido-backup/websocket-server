@@ -6,7 +6,7 @@
 
 // PubSub envelope subscriber
 
-package main
+package zeromq
 
 import (
 "context"

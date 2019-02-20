@@ -9,7 +9,7 @@
 // Connects REP socket to tcp://*:5559
 // Expects "Hello" from client, replies with "World"
 
-package main
+package zeromq
 
 import (
 "context"

@@ -1,0 +1,24 @@
+db:
+  host: 10.10.10.103
+  port: 5432
+  name: apidev
+  username: appdev
+  password: FdN94Ceb9DQH3hE9
+
+kafka:
+  webapp:
+    brokers: [127.0.0.1:9092]
+  websocket:
+    brokers: [127.0.0.1:9092]
+    partition: 1
+
+redis:
+  host: 127.0.0.1
+  port: 6379
+
+zeromq:
+  listener: tcp://*:5563
+
+sockjs:
+  port: 18000
+  path: /echo
