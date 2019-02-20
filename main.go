@@ -4,35 +4,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-zeromq/zmq4"
-	"log"
+	"github.com/sirupsen/logrus"
 	"net/http"
-	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
-	"time"
 	"context"
+	"websocket-server/daos"
 )
 
-var clients map[string] map[string] sockjs.Session
+var log = logrus.New()
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
-
-type Rate struct{
-	MainCurrency		string 		`json:"mainCurrency"`
-	PivotCurrency		string 		`json:"pivotCurrency"`
-}
+var clients map[string] map[string] map[string] sockjs.Session  //topic -> username -> sessionID
+var sessions map[string] map[string] string //topic -> sessionId -> username
 
 func main(){
 
-	clients = make(map[string] map[string] sockjs.Session)
+	clients = make(map[string] map[string] map[string] sockjs.Session)
+	sessions = make(map[string] map[string] string)
 	//go clientHub()
 
 	go socketListener("BTC-IDR")
 	go socketListener("XRP-IDR")
 
-	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, echoHandler)
+	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, sockjsHandler)
 
 	log.Fatal(http.ListenAndServe(":18000", handler))
 
@@ -40,39 +33,53 @@ func main(){
 	fmt.Println("Done Main")
 }
 
-func echoHandler(session sockjs.Session) {
+func sockjsHandler(session sockjs.Session) {
 	str := string("connection from server (" + session.ID() + ") : OPEN")
 
 	//register client
-	subscribeClientToTopic("BTC-IDR", session)
-	session.Send("start subscribe to : BTC-IDR")
+	//subscribeClientToTopic("BTC-IDR", session)
+	//session.Send("start subscribe to : BTC-IDR")
 	fmt.Println(clients)
 	fmt.Println(str)
+
 	for {
 		if msg, err := session.Recv(); err == nil {
-			fmt.Println(msg)
+
+			log.Println(msg)
+
+			var subscriber daos.Subscriber
+			err := json.Unmarshal([]byte(msg), &subscriber)
+
+			log.Println(subscriber)
+
+			if err != nil {
+				log.Error(err)
+				continue
+			}
 
 			unsubscribeClientToAllTopic(session.ID())
-			subscribeClientToTopic(msg, session)
+			subscribeClientToTopic(subscriber.Topic, subscriber.Username, session)
 
-			str := string("subscribe to : "+msg)
+			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
 
 			continue
 		}
 		str := string("connection from server (" + session.ID() + ") : CLOSED")
-		fmt.Println(str)
+		log.Println(str)
 
 		//remove client
 		unsubscribeClientToAllTopic(session.ID())
-		fmt.Println(clients)
+		log.Println(clients)
+		log.Println(sessions)
 		break
 	}
 }
 
 
 func socketListener(rate string){
-	clients[rate] = make(map[string] sockjs.Session)
+	clients[rate] = make(map[string] map[string] sockjs.Session)
+	sessions[rate] = make(map[string] string)
 
 	sub := zmq4.NewSub(context.Background())
 	defer sub.Close()
@@ -97,7 +104,7 @@ func socketListener(rate string){
 		}
 		//msg.Frames[0] --> topic
 		//msg.Frames[1] --> message
-		var message Rate
+		var message daos.Rate
 		_ = json.Unmarshal(msg.Frames[1], &message)
 		broadcastMessage(rate, "mainCurrency : "+message.MainCurrency)
 
@@ -106,27 +113,73 @@ func socketListener(rate string){
 }
 
 func unsubscribeClientToAllTopic(sessionID string){
-	for topic, _ := range(clients) {
-		delete(clients[topic], sessionID)
+	for topic, _ := range(sessions) {
+		username := sessions[topic][sessionID]
+
+		delete(clients[topic][username], sessionID)
+		if len(clients[topic][username]) == 0 {
+			delete(clients[topic], username)
+		}
+		delete(sessions[topic], sessionID)
 	}
 }
 
-func subscribeClientToTopic(topic string, session sockjs.Session){
-	fmt.Println("subscribe")
-	clients[topic][session.ID()] = session
+//func unsubscribeClientToAllTopic(username string, sessionID string){
+//	log.Println("unsubscribe")
+//	for topic, _ := range(clients) {
+//
+//		log.Println(topic)
+//		log.Println(username)
+//		log.Println(sessionID)
+//		log.Println(clients[topic][username][sessionID])
+//
+//		if (clients[topic][username] != nil){
+//			log.Println(topic)
+//			log.Println(username)
+//			log.Println(sessionID)
+//
+//			delete(clients[topic][username], sessionID)
+//			if len(clients[topic][username]) == 0 {
+//				delete(clients[topic], username)
+//			}
+//			delete(sessions[topic], sessionID)
+//		}
+//	}
+//}
 
+func subscribeClientToTopic(topic string, username string, session sockjs.Session){
+	log.Println("subscribe")
+	if clients[topic][username] == nil{
+		clients[topic][username] = make(map[string] sockjs.Session)
+	}
+
+	clients[topic][username][session.ID()] = session
+	sessions[topic][session.ID()] = username
+
+	log.Println(clients)
+	log.Println(sessions)
 }
 
 
 func broadcastMessage(topic string, str string){
 
+	//start := time.Now()
+	for _, username := range(clients[topic]) {
+		for _, session := range(username){
+			session.Send(str)
+		}
 
-	start := time.Now()
-	for _, session := range(clients[topic]) {
-		session.Send(str)
 	}
-	fmt.Println("Time : "+time.Since(start).String())
-	log.Println(clients)
+	//log.Println("Time : "+time.Since(start).String())
+	//log.Println(clients)
+	//log.Println(sessions)
 
+}
+
+func sendMessageToUser(topic string, username string, str string){
+
+	for _, session := range(clients[topic][username]) {
+			session.Send(str)
+	}
 
 }
