@@ -3,14 +3,20 @@ package zeromq
 import (
 	"encoding/json"
 	"github.com/go-zeromq/zmq4"
-	"log"
+	"github.com/sirupsen/logrus"
 	"context"
+	"strings"
+	"websocket-server/const/trd"
 	"websocket-server/daos"
+	"websocket-server/daos/trading"
 	"websocket-server/util/websocket"
 )
 
+var log = logrus.New()
 
-func Listen(topic string, clients *daos.Clients){
+func Listen(zmqKey string, clients *daos.Clients){
+
+	topic := strings.Split(zmqKey,":")[0]
 	clients.SetTopic(topic)
 
 	sub := zmq4.NewSub(context.Background())
@@ -23,7 +29,7 @@ func Listen(topic string, clients *daos.Clients){
 	}
 
 	//subscribe
-	err = sub.SetOption(zmq4.OptionSubscribe, topic)
+	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
 	if err != nil {
 		log.Fatalf("could not subscribe: %v", err)
 	}
@@ -37,18 +43,20 @@ func Listen(topic string, clients *daos.Clients){
 
 		//log.Println(msg)
 		//
-		//orderbook := daos.OrderBookFromJSONZeroMQ(msg.Bytes())
+		orderbook := daos.OrderBookFromJSONZeroMQ(msg.Frames[1])
 
-		var orderbook daos.OrderBookZeroMQ;
-		json.Unmarshal(msg.Bytes(), &orderbook);
+		trdOrderbook := trading.Orderbook{trdconst.ORDERHISTORY, orderbook}
+		trdOrderbookJson, err := json.Marshal(trdOrderbook)
+		if err!=nil{
+			log.Error(err)
+		}
 
-		log.Println(orderbook)
 
-		//msg.Frames[0] --> topic
+		//msg.Frames[0] --> zmqKey
 		//msg.Frames[1] --> message
 		var message daos.Rate
 		_ = json.Unmarshal(msg.Frames[1], &message)
-		websocket.BroadcastMessage(topic, "mainCurrency : "+message.MainCurrency)
+		websocket.BroadcastMessage(topic, string(trdOrderbookJson))
 
 	}
 

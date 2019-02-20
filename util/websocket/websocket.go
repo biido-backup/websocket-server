@@ -93,6 +93,7 @@ func subscribeClientToTopic(topic string, username string, session sockjs.Sessio
 
 func BroadcastMessage(topic string, str string){
 
+
 	//start := time.Now()
 	for _, username := range(clients.Clients[topic]) {
 		for _, session := range(username){
