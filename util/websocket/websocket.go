@@ -53,7 +53,7 @@ func SockjsHandler(session sockjs.Session) {
 			}
 
 			unsubscribeClientToAllTopic(session.ID())
-			subscribeClientToTopic(subscriber.Topic, subscriber.Username, session)
+			subscribeClientToTopic(subscriber.Topic, subscriber.Username, subscriber.Interval, session)
 
 
 
@@ -81,7 +81,7 @@ func unsubscribeClientToAllTopic(sessionID string){
 }
 
 
-func subscribeClientToTopic(topic string, username string, session sockjs.Session){
+func subscribeClientToTopic(topic string, username string, interval string, session sockjs.Session){
 	log.Println("subscribe")
 
 	clients.AddClient(topic, username , session)
