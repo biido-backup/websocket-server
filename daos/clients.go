@@ -5,8 +5,9 @@ import (
 )
 
 type Clients struct {
-	Clients map[string] map[string] map[string] sockjs.Session  	//topic -> username -> sessionID
-	Sessions map[string] map[string] string 						//topic -> sessionId -> username
+	Clients map[string] map[string] map[string] sockjs.Session  	//topic -> username -> sessionID : Session
+	Sessions map[string] map[string] string 						//topic -> sessionId : username
+	Interval map[string] map[string] string							//topic -> interval : sessionId
 }
 
 
