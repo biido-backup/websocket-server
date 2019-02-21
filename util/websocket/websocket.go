@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"websocket-server/daos"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"github.com/spf13/viper"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"net/http"
+	"strings"
+	"websocket-server/daos"
 )
 
 var log = logrus.New()
@@ -55,10 +56,10 @@ func SockjsHandler(session sockjs.Session) {
 			unsubscribeClientToAllTopic(session.ID())
 			subscribeClientToTopic(subscriber.Topic, subscriber.Username, subscriber.Interval, session)
 
-
-
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
+
+			session.Send("[" + strings.Join(daos.Charts.ListMap["BTC-IDR"]["MINUTE"], ",") + "]")
 
 			continue
 		}
