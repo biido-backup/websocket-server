@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/spf13/viper"
 	"log"
@@ -13,7 +14,7 @@ import (
 )
 
 func GetTradingChart(rate, unitOfTime string) (tradingChartJSONList []daos.TradingChart, offset int64) {
-	tradingChartJSONList = make([]daos.TradingChart, 0, 1500)
+	tradingChartJSONList = make([]daos.TradingChart, 0, 150)
 	kafkaTopic := rate + ".TRADING_CHART." + unitOfTime
 
 	config := sarama.NewConfig()
@@ -31,7 +32,7 @@ func GetTradingChart(rate, unitOfTime string) (tradingChartJSONList []daos.Tradi
 	}
 
 	if offset > 0 {
-		offsetToConsume := offset - 1500
+		offsetToConsume := offset - 150
 		if offsetToConsume < 0 {
 			offsetToConsume = 0
 		}
@@ -88,7 +89,7 @@ func MaintenanceTradingChartArray(rate string, unitOfTime string, tradingCharts 
 		msg := <- partitionConsumer.Messages()
 
 		mutex.Lock()
-		if len(tradingCharts.ListMap[rate][unitOfTime]) >= 1500 {
+		if len(tradingCharts.ListMap[rate][unitOfTime]) >= 150 {
 			tradingCharts.ListMap[rate][unitOfTime] = tradingCharts.ListMap[rate][unitOfTime][1:len(tradingCharts.ListMap[rate][unitOfTime])]
 		}
 		tradingCharts.ListMap[rate][unitOfTime] = append(tradingCharts.ListMap[rate][unitOfTime], daos.TradingChartFromJSON(msg.Value))
@@ -97,7 +98,7 @@ func MaintenanceTradingChartArray(rate string, unitOfTime string, tradingCharts 
 
 		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.TradingChart{daos.TradingChartFromJSON(msg.Value)}}
 		tradingChartJson, _ := json.Marshal(tradingChart)
-		//fmt.Println(string(tradingChartJson))
+		fmt.Println(string(tradingChartJson))
 		websocket.BroadcastMessage(rate, string(tradingChartJson))
 		mutex.Unlock()
 	}

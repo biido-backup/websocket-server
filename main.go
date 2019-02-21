@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"sync"
+	"websocket-server/const/trd"
 	"websocket-server/daos"
+	"websocket-server/daos/trading"
 	"websocket-server/service"
 	"websocket-server/util/config"
 	"websocket-server/util/database"
@@ -48,9 +52,9 @@ func main(){
 			daos.Charts.ListMap[rate] = initMapList
 			daos.Charts.OffsetMap[rate] = initMapOffset
 
-			//tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[rate][unitOfTime]}
-			//tradingChartJson, _ := json.Marshal(tradingChart)
-			//fmt.Println(string(tradingChartJson))
+			tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[rate][unitOfTime]}
+			tradingChartJson, _ := json.Marshal(tradingChart)
+			fmt.Println(string(tradingChartJson))
 
 			go kafka.MaintenanceTradingChartArray(rate, unitOfTime, daos.Charts, mutex)
 		}
