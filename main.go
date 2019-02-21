@@ -41,14 +41,14 @@ func main(){
 	unitOfTimeList := []string{"MINUTE"}
 	for _, rate := range rateList {
 		for _, unitOfTime := range unitOfTimeList{
-			initMapList := make(map[string][]string)
+			initMapList := make(map[string][]daos.TradingChart)
 			initMapOffset := make(map[string]int64)
-			initMapList[unitOfTime], initMapOffset[unitOfTime] = kafka.GetCandleStick(rate, unitOfTime)
+			initMapList[unitOfTime], initMapOffset[unitOfTime] = kafka.GetTradingChart(rate, unitOfTime)
 
 			daos.Charts.ListMap[rate] = initMapList
 			daos.Charts.OffsetMap[rate] = initMapOffset
 
-			//tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[rate]["MINUTE"]}
+			//tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[rate][unitOfTime]}
 			//tradingChartJson, _ := json.Marshal(tradingChart)
 			//fmt.Println(string(tradingChartJson))
 

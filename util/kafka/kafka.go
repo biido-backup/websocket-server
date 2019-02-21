@@ -12,8 +12,8 @@ import (
 	"websocket-server/util/websocket"
 )
 
-func GetCandleStick(rate, unitOfTime string) (tradingChartJSONList []string, offset int64) {
-	tradingChartJSONList = make([]string, 0, 5)
+func GetTradingChart(rate, unitOfTime string) (tradingChartJSONList []daos.TradingChart, offset int64) {
+	tradingChartJSONList = make([]daos.TradingChart, 0, 1500)
 	kafkaTopic := rate + ".TRADING_CHART." + unitOfTime
 
 	config := sarama.NewConfig()
@@ -31,7 +31,7 @@ func GetCandleStick(rate, unitOfTime string) (tradingChartJSONList []string, off
 	}
 
 	if offset > 0 {
-		offsetToConsume := offset - 5
+		offsetToConsume := offset - 1500
 		if offsetToConsume < 0 {
 			offsetToConsume = 0
 		}
@@ -48,7 +48,7 @@ func GetCandleStick(rate, unitOfTime string) (tradingChartJSONList []string, off
 
 		for {
 			msg := <- partitionConsumer.Messages()
-			tradingChartJSONList = append(tradingChartJSONList, string(msg.Value))
+			tradingChartJSONList = append(tradingChartJSONList, daos.TradingChartFromJSON(msg.Value))
 			if msg.Offset == offset - 1 {
 				break
 			}
@@ -88,14 +88,14 @@ func MaintenanceTradingChartArray(rate string, unitOfTime string, tradingCharts 
 		msg := <- partitionConsumer.Messages()
 
 		mutex.Lock()
-		size := len(tradingCharts.ListMap[rate][unitOfTime])
-		if size >= 5 {
+		if len(tradingCharts.ListMap[rate][unitOfTime]) >= 1500 {
 			tradingCharts.ListMap[rate][unitOfTime] = tradingCharts.ListMap[rate][unitOfTime][1:len(tradingCharts.ListMap[rate][unitOfTime])]
 		}
-		tradingCharts.ListMap[rate][unitOfTime] = append(tradingCharts.ListMap[rate][unitOfTime], string(msg.Value))
+		tradingCharts.ListMap[rate][unitOfTime] = append(tradingCharts.ListMap[rate][unitOfTime], daos.TradingChartFromJSON(msg.Value))
 		tradingCharts.OffsetMap[rate][unitOfTime] = msg.Offset
 
-		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []string{string(msg.Value)}}
+
+		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.TradingChart{daos.TradingChartFromJSON(msg.Value)}}
 		tradingChartJson, _ := json.Marshal(tradingChart)
 		//fmt.Println(string(tradingChartJson))
 		websocket.BroadcastMessage(rate, string(tradingChartJson))
