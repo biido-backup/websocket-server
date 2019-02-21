@@ -1,12 +1,14 @@
 package kafka
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/Shopify/sarama"
 	"github.com/spf13/viper"
 	"log"
 	"sync"
+	"websocket-server/const/trd"
 	"websocket-server/daos"
+	"websocket-server/daos/trading"
 	"websocket-server/util/websocket"
 )
 
@@ -93,8 +95,10 @@ func MaintenanceTradingChartArray(rate string, unitOfTime string, tradingCharts 
 		tradingCharts.ListMap[rate][unitOfTime] = append(tradingCharts.ListMap[rate][unitOfTime], string(msg.Value))
 		tradingCharts.OffsetMap[rate][unitOfTime] = msg.Offset
 
-		fmt.Println(string(msg.Value))
-		websocket.BroadcastMessage(rate, string(msg.Value))
+		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []string{string(msg.Value)}}
+		tradingChartJson, _ := json.Marshal(tradingChart)
+		//fmt.Println(string(tradingChartJson))
+		websocket.BroadcastMessage(rate, string(tradingChartJson))
 		mutex.Unlock()
 	}
 }

@@ -37,7 +37,7 @@ func main(){
 			}
 		}
 	}
-	rateList = []string{"BTC-IDR"}
+	//rateList = []string{"BTC-IDR"}
 	unitOfTimeList := []string{"MINUTE"}
 	for _, rate := range rateList {
 		for _, unitOfTime := range unitOfTimeList{
@@ -47,6 +47,10 @@ func main(){
 
 			daos.Charts.ListMap[rate] = initMapList
 			daos.Charts.OffsetMap[rate] = initMapOffset
+
+			//tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[rate]["MINUTE"]}
+			//tradingChartJson, _ := json.Marshal(tradingChart)
+			//fmt.Println(string(tradingChartJson))
 
 			go kafka.MaintenanceTradingChartArray(rate, unitOfTime, daos.Charts, mutex)
 		}

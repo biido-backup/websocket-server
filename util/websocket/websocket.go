@@ -7,8 +7,9 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"net/http"
-	"strings"
+	"websocket-server/const/trd"
 	"websocket-server/daos"
+	"websocket-server/daos/trading"
 )
 
 var log = logrus.New()
@@ -59,7 +60,9 @@ func SockjsHandler(session sockjs.Session) {
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
 
-			session.Send("[" + strings.Join(daos.Charts.ListMap["BTC-IDR"]["MINUTE"], ",") + "]")
+			tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[subscriber.Topic]["MINUTE"]}
+			tradingChartJson, _ := json.Marshal(tradingChart)
+			session.Send(string(tradingChartJson))
 
 			continue
 		}
