@@ -109,7 +109,7 @@ func BroadcastMessage(topic string, str string){
 	//log.Println(sessions)
 }
 
-func BroadcastMessageToInterval(topic string, interval string, str string){
+func BroadcastMessageWithInterval(topic string, interval string, str string){
 	var sessions map[string] sockjs.Session
 	sessions = clients.GetListSessionByTopicAndInterval(topic, interval)
 	for _, session := range(sessions) {

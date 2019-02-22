@@ -5,10 +5,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"sync"
+	"time"
 	"websocket-server/daos"
 	"websocket-server/util/config"
 	"websocket-server/util/redis"
 	"websocket-server/util/websocket"
+	"websocket-server/util/zeromq"
 )
 
 var log = logrus.New()
@@ -34,6 +36,8 @@ func main(){
 	for _, tradingRate := range(tradingRateList){
 		log.Println(tradingRate)
 		clients.SetTopic(tradingRate.StringDash())
+		go zeromq.Listen(tradingRate.StringDash()+":"+"ORER_BOOK", &clients)
+		time.Sleep(time.Microsecond)
 	}
 
 	err := websocket.ServeSocket(&clients)
