@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"websocket-server/daos"
 	"websocket-server/util/config"
-	"websocket-server/util/database"
+	"websocket-server/util/redis"
+	"websocket-server/util/websocket"
 )
 
 var log = logrus.New()
@@ -13,30 +16,30 @@ var clients *daos.Clients
 
 
 func main(){
-	config.LoadConfig();
+	config.LoadConfig()
+	redis.ConnectRedis()
 
-	//clients = daos.CreateClients()
-	//log.Println(*clients)
-	database.ConnectDbPostgres()
+	var clients daos.Clients
+	clients = daos.CreateClients()
 
+	log.Println(clients)
 
-	//walletTypeList, err := service.GetAllWalletType()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//for _, walletType := range(walletTypeList){
-	//	log.Println(walletType)
-	//}
+	rate := viper.GetString("redis.trading.key")
 
-	//go zeromq.Listen("BTC-IDR:ORDER_BOOK", clients)
-	////go zeromq.Listen("XRP-IDR", clients)
-	//
-	//err := websocket.ServeSocket(clients)
-	//if err != nil {
-	//	log.Error(err)
-	//	log.Fatal(err)
-	//}
+	tradingRateJson := redis.GetValueByKey(rate)
+	tradingRateList := make([]daos.Rate, 0, 1)
+	json.Unmarshal(tradingRateJson, &tradingRateList)
+
+	for _, tradingRate := range(tradingRateList){
+		log.Println(tradingRate)
+		clients.SetTopic(tradingRate.StringDash())
+	}
+
+	err := websocket.ServeSocket(&clients)
+	if err != nil {
+		log.Error(err)
+		log.Fatal(err)
+	}
 
 }
 

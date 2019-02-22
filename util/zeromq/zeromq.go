@@ -51,6 +51,8 @@ func Listen(zmqKey string, clients *daos.Clients){
 			log.Error(err)
 		}
 
+		log.Println(orderbook)
+
 
 		//msg.Frames[0] --> zmqKey
 		//msg.Frames[1] --> message

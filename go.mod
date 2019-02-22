@@ -2,6 +2,7 @@ module websocket-server
 
 require (
 	github.com/go-ozzo/ozzo-dbx v1.0.15
+	github.com/go-redis/redis v6.15.1+incompatible
 	github.com/go-zeromq/zmq4 v0.4.0
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect

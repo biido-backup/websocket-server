@@ -40,12 +40,12 @@ func SockjsHandler(session sockjs.Session) {
 	for {
 		if msg, err := session.Recv(); err == nil {
 
-			log.Println(msg)
+			//log.Println(msg)
 
 			var subscriber daos.Subscriber
 			err := json.Unmarshal([]byte(msg), &subscriber)
 
-			log.Println(subscriber)
+			//log.Println(subscriber)
 
 			if err != nil {
 				log.Error(err)
@@ -53,9 +53,7 @@ func SockjsHandler(session sockjs.Session) {
 			}
 
 			unsubscribeClientToAllTopic(session.ID())
-			subscribeClientToTopic(subscriber.Topic, subscriber.Username, subscriber.Interval, session)
-
-
+			subscribeClientToTopic(subscriber, session)
 
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
@@ -68,34 +66,33 @@ func SockjsHandler(session sockjs.Session) {
 		//remove client
 		unsubscribeClientToAllTopic(session.ID())
 		log.Println(clients.Clients)
-		log.Println(clients.Sessions)
+		log.Println(clients.ClientSessions)
 		break
 	}
 }
 
-
 func unsubscribeClientToAllTopic(sessionID string){
-	for topic, _ := range(clients.Sessions) {
-		clients.DeleteClient(topic, sessionID)
+	for topic, _ := range(clients.ClientSessions) {
+		clients.RemoveSubscriber(topic, sessionID)
 	}
 }
 
-
-func subscribeClientToTopic(topic string, username string, interval string, session sockjs.Session){
+func subscribeClientToTopic(subscriber daos.Subscriber, session sockjs.Session){
 	log.Println("subscribe")
 
-	clients.AddClient(topic, username , session)
+	clients.AddSubscriber(subscriber, session)
 
 	log.Println(clients.Clients)
-	log.Println(clients.Sessions)
+	log.Println(clients.ClientSessions)
+	log.Println(clients.Intervals)
+	log.Println(clients.IntervalSessions)
 }
 
-
 func BroadcastMessage(topic string, str string){
-
-
 	//start := time.Now()
-	for _, username := range(clients.Clients[topic]) {
+	var c map[string] map[string] sockjs.Session
+	c = clients.GetAllClientsByTopic(topic)
+	for _, username := range(c) {
 		for _, session := range(username){
 			session.Send(str)
 		}
@@ -104,12 +101,21 @@ func BroadcastMessage(topic string, str string){
 	//log.Println("Time : "+time.Since(start).String())
 	//log.Println(clients)
 	//log.Println(sessions)
+}
 
+func BroadcastMessageToInterval(topic string, interval string, str string){
+	var sessions map[string] sockjs.Session
+	sessions = clients.GetListSessionByTopicAndInterval(topic, interval)
+	for _, session := range(sessions) {
+		session.Send(str)
+	}
 }
 
 func SendMessageToUser(topic string, username string, str string){
 
-	for _, session := range(clients.Clients[topic][username]) {
+	var sessions map[string] sockjs.Session
+	sessions = clients.GetListSessionByTopicAndUsername(topic, username)
+	for _, session := range(sessions) {
 		session.Send(str)
 	}
 
