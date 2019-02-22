@@ -49,7 +49,42 @@ func GetTradingChart(rate, unitOfTime string) (tradingChartJSONList []daos.Tradi
 
 		for {
 			msg := <- partitionConsumer.Messages()
-			tradingChartJSONList = append(tradingChartJSONList, daos.TradingChartFromJSON(msg.Value))
+			tradingChart := daos.TradingChartFromJSON(msg.Value)
+
+			length := len(tradingChartJSONList)
+			if length > 0 {
+				lowerBound := 0
+				upperBound := length - 1
+				curIn := 0
+
+				for {
+					curIn = (upperBound + lowerBound) / 2
+					if tradingChartJSONList[curIn].Time < tradingChart.Time {
+						lowerBound = curIn + 1
+						if lowerBound > upperBound {
+							curIn = curIn + 1
+							break
+						}
+					} else if tradingChartJSONList[curIn].Time > tradingChart.Time {
+						upperBound = curIn - 1
+						if lowerBound > upperBound {
+							break
+						}
+					} else {
+						break
+					}
+				}
+
+				if curIn >= length {
+					tradingChartJSONList = append(tradingChartJSONList, tradingChart)
+				} else {
+					tradingChartJSONList = append(tradingChartJSONList[:curIn+1], tradingChartJSONList[curIn:]...)
+					tradingChartJSONList[curIn] = tradingChart
+				}
+			} else {
+				tradingChartJSONList = append(tradingChartJSONList, tradingChart)
+			}
+
 			if msg.Offset == offset - 1 {
 				break
 			}
