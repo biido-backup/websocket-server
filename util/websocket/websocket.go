@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"websocket-server/daos"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"github.com/spf13/viper"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"net/http"
+	"websocket-server/const/trd"
+	"websocket-server/daos"
+	"websocket-server/daos/trading"
 )
 
 var log = logrus.New()
@@ -57,6 +59,10 @@ func SockjsHandler(session sockjs.Session) {
 
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
+
+			tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[subscriber.Topic]["MINUTE"]}
+			tradingChartJson, _ := json.Marshal(tradingChart)
+			session.Send(string(tradingChartJson))
 
 			continue
 		}

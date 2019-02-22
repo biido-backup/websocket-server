@@ -12,7 +12,7 @@ redis:
     key: TRADING-RATE
 
 zeromq:
-  listener: tcp://*:5563
+  publisher: tcp://localhost:5563
 
 sockjs:
   port: 18000

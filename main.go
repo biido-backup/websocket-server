@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"sync"
 	"websocket-server/daos"
 	"websocket-server/util/config"
 	"websocket-server/util/redis"
@@ -11,8 +12,8 @@ import (
 )
 
 var log = logrus.New()
-
 var clients *daos.Clients
+var mutex *sync.Mutex
 
 
 func main(){
