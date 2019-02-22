@@ -1,17 +1,11 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/sirupsen/logrus"
 	"sync"
-	"websocket-server/const/trd"
 	"websocket-server/daos"
-	"websocket-server/daos/trading"
-	"websocket-server/service"
 	"websocket-server/util/config"
 	"websocket-server/util/database"
-	"websocket-server/util/kafka"
 	"websocket-server/util/websocket"
 	"websocket-server/util/zeromq"
 )
@@ -27,38 +21,39 @@ func main(){
 	clients = daos.CreateClients()
 	log.Println(*clients)
 
-	mutex = &sync.Mutex{}
-	daos.CreateTradingCharts()
-
-	walletTypeList := service.GetAllWalletType()
-	rateList := make([]string, 0, 1)
-	for _, pivot := range walletTypeList{
-		if pivot.FlagActive == 1 && pivot.PivotPriority.Valid {
-			for _, main := range walletTypeList{
-				if main.FlagActive == 1 && (!main.PivotPriority.Valid || main.PivotPriority.Int64 > pivot.PivotPriority.Int64){
-					rateList = append(rateList,  main.Code+ "-" +pivot.Code)
-				}
-			}
-		}
-	}
-	//rateList = []string{"BTC-IDR"}
-	unitOfTimeList := []string{"MINUTE"}
-	for _, rate := range rateList {
-		for _, unitOfTime := range unitOfTimeList{
-			initMapList := make(map[string][]daos.TradingChart)
-			initMapOffset := make(map[string]int64)
-			initMapList[unitOfTime], initMapOffset[unitOfTime] = kafka.GetTradingChart(rate, unitOfTime)
-
-			daos.Charts.ListMap[rate] = initMapList
-			daos.Charts.OffsetMap[rate] = initMapOffset
-
-			tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[rate][unitOfTime]}
-			tradingChartJson, _ := json.Marshal(tradingChart)
-			fmt.Println(string(tradingChartJson))
-
-			go kafka.MaintenanceTradingChartArray(rate, unitOfTime, daos.Charts, mutex)
-		}
-	}
+	//mutex = &sync.Mutex{}
+	//daos.CreateTradingCharts()
+	//
+	//walletTypeList := service.GetAllWalletType()
+	//rateList := make([]string, 0, 1)
+	//for _, pivot := range walletTypeList{
+	//	if pivot.FlagActive == 1 && pivot.PivotPriority.Valid {
+	//		for _, main := range walletTypeList{
+	//			if main.FlagActive
+	//			== 1 && (!main.PivotPriority.Valid || main.PivotPriority.Int64 > pivot.PivotPriority.Int64){
+	//				rateList = append(rateList,  main.Code+ "-" +pivot.Code)
+	//			}
+	//		}
+	//	}
+	//}
+	////rateList = []string{"BTC-IDR"}
+	//unitOfTimeList := []string{"MINUTE"}
+	//for _, rate := range rateList {
+	//	for _, unitOfTime := range unitOfTimeList{
+	//		initMapList := make(map[string][]daos.TradingChart)
+	//		initMapOffset := make(map[string]int64)
+	//		initMapList[unitOfTime], initMapOffset[unitOfTime] = kafka.GetTradingChart(rate, unitOfTime)
+	//
+	//		daos.Charts.ListMap[rate] = initMapList
+	//		daos.Charts.OffsetMap[rate] = initMapOffset
+	//
+	//		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[rate][unitOfTime]}
+	//		tradingChartJson, _ := json.Marshal(tradingChart)
+	//		fmt.Println(string(tradingChartJson))
+	//
+	//		go kafka.MaintenanceTradingChartArray(rate, unitOfTime, daos.Charts, mutex)
+	//	}
+	//}
 
 	go zeromq.Listen("BTC-IDR:ORDER_BOOK", clients)
 	//go zeromq.Listen("XRP-IDR", clients)

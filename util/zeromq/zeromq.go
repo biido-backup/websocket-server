@@ -5,6 +5,7 @@ import (
 	"github.com/go-zeromq/zmq4"
 	"github.com/sirupsen/logrus"
 	"context"
+	"github.com/spf13/viper"
 	"strings"
 	"websocket-server/const/trd"
 	"websocket-server/daos"
@@ -14,6 +15,8 @@ import (
 
 var log = logrus.New()
 
+
+
 func Listen(zmqKey string, clients *daos.Clients){
 
 	topic := strings.Split(zmqKey,":")[0]
@@ -22,8 +25,10 @@ func Listen(zmqKey string, clients *daos.Clients){
 	sub := zmq4.NewSub(context.Background())
 	defer sub.Close()
 
+	var publisher = viper.GetString("zeromq.publisher")
+
 	//dial
-	err := sub.Dial("tcp://localhost:5563")
+	err := sub.Dial(publisher)
 	if err != nil {
 		log.Fatalf("could not dial: %v", err)
 	}
@@ -40,10 +45,10 @@ func Listen(zmqKey string, clients *daos.Clients){
 		if err != nil {
 			log.Fatalf("could not receive message: %v", err)
 		}
-
-		//log.Println(msg)
 		//
 		orderbook := daos.OrderBookFromJSONZeroMQ(msg.Frames[1])
+
+		log.Println(orderbook)
 
 		trdOrderbook := trading.Orderbook{trdconst.ORDERHISTORY, orderbook}
 		trdOrderbookJson, err := json.Marshal(trdOrderbook)
