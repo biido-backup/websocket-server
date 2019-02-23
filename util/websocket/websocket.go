@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"net/http"
-	"websocket-server/const/trd"
 	"websocket-server/daos"
 	"websocket-server/daos/trading"
 )
@@ -60,8 +59,9 @@ func SockjsHandler(session sockjs.Session) {
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
 
-			tradingChart := trading.TradingChart{trdconst.TRADINGCHART, daos.GetTradingChartListMap()[subscriber.Topic]["MINUTE"]}
+			tradingChart := trading.CreateTradingChart(subscriber)
 			tradingChartJson, _ := json.Marshal(tradingChart)
+			fmt.Println(string(tradingChartJson))
 			session.Send(string(tradingChartJson))
 
 			continue

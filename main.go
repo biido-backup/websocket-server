@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 	"websocket-server/daos"
+	"websocket-server/engine"
 	"websocket-server/util/config"
 	"websocket-server/util/redis"
 	"websocket-server/util/websocket"
@@ -39,6 +40,7 @@ func main(){
 		go zeromq.Listen(tradingRate.StringDash()+":"+"ORER_BOOK", &clients)
 		time.Sleep(time.Microsecond)
 	}
+	go engine.ProcessTradingChart(tradingRateList)
 
 	err := websocket.ServeSocket(&clients)
 	if err != nil {

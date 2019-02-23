@@ -4,6 +4,8 @@ kafka:
   websocket:
     brokers: [127.0.0.1:9092]
     partition: 1
+  prefix:
+    chart: "CRT."
 
 redis:
   host: 127.0.0.1
@@ -14,7 +16,9 @@ redis:
 zeromq:
   publisher: tcp://localhost:5563
 
-
 sockjs:
   port: 18000
   path: /echo
+
+tradingchart:
+  quantity: 10
