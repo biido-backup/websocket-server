@@ -5,7 +5,7 @@ kafka:
     brokers: [127.0.0.1:9092]
     partition: 1
   prefix:
-    chart: "CRT."
+    chart: "CRT-"
 
 redis:
   host: 127.0.0.1
