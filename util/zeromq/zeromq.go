@@ -48,8 +48,6 @@ func Listen(zmqKey string, clients *daos.Clients){
 		//
 		orderbook := daos.OrderBookFromJSONZeroMQ(msg.Frames[1])
 
-		log.Println(orderbook)
-
 		trdOrderbook := trading.Orderbook{trdconst.ORDERBOOK, orderbook}
 		trdOrderbookJson, err := json.Marshal(trdOrderbook)
 		if err!=nil{

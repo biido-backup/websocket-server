@@ -5,7 +5,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"sync"
-	"time"
 	"websocket-server/daos"
 	"websocket-server/util/config"
 	"websocket-server/util/redis"
@@ -27,17 +26,17 @@ func main(){
 
 	log.Println(clients)
 
-	rate := viper.GetString("redis.trading.key")
+	rateList := viper.GetString("redis.trading.key")
 
-	tradingRateJson := redis.GetValueByKey(rate)
+	tradingRateJson := redis.GetValueByKey(rateList)
 	tradingRateList := make([]daos.Rate, 0, 1)
 	json.Unmarshal(tradingRateJson, &tradingRateList)
 
 	for _, tradingRate := range(tradingRateList){
 		log.Println(tradingRate)
 		clients.SetTopic(tradingRate.StringDash())
-		go zeromq.Listen(tradingRate.StringDash()+":"+"ORER_BOOK", &clients)
-		time.Sleep(time.Microsecond)
+		go zeromq.Listen(tradingRate.StringDash()+":"+"ORDER_BOOK", &clients)
+		//time.Sleep(time.Millisecond)
 	}
 
 	err := websocket.ServeSocket(&clients)
