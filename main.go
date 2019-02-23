@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	"sync"
 	"websocket-server/daos"
+	"websocket-server/engine"
 	"websocket-server/util/config"
 	"websocket-server/util/redis"
 	"websocket-server/util/websocket"
@@ -38,6 +39,7 @@ func main(){
 		go zeromq.Listen(tradingRate.StringDash()+":"+"ORDER_BOOK", &clients)
 		//time.Sleep(time.Millisecond)
 	}
+	go engine.ProcessTradingChart(tradingRateList)
 
 	err := websocket.ServeSocket(&clients)
 	if err != nil {
