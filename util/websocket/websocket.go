@@ -2,17 +2,14 @@ package websocket
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"net/http"
-	"websocket-server/const/trd"
 	"websocket-server/daos"
-	//"websocket-server/daos/trading"
+	"websocket-server/util/logger"
 )
 
-var log = logrus.New()
+var log = logger.CreateLog("websocket")
 
 var clients *daos.Clients
 
@@ -23,8 +20,8 @@ func ServeSocket(cls *daos.Clients) error{
 	port := viper.GetString("sockjs.port")
 	path := viper.GetString("sockjs.path")
 
-	log.Println(port)
-	log.Println(path)
+	log.Debug(port)
+	log.Debug(path)
 
 	handler := sockjs.NewHandler(path, sockjs.DefaultOptions, SockjsHandler)
 	return http.ListenAndServe(":"+port, handler)
@@ -36,8 +33,8 @@ func SockjsHandler(session sockjs.Session) {
 	//register client
 	//subscribeClientToTopic("BTC-IDR", session)
 	//session.Send("start subscribe to : BTC-IDR")
-	fmt.Println(clients)
-	fmt.Println(str)
+	//fmt.Println(clients)
+	log.Debug(str)
 
 	for {
 		if msg, err := session.Recv(); err == nil {
@@ -50,7 +47,7 @@ func SockjsHandler(session sockjs.Session) {
 			//log.Println(subscriber)
 
 			if err != nil {
-				log.Error(err)
+				log.Error("Failed to deserialize message", err)
 				continue
 			}
 
@@ -60,19 +57,20 @@ func SockjsHandler(session sockjs.Session) {
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
 
-			tradingChart := trading.CreateTradingChart(subscriber)
-			tradingChartJson, _ := json.Marshal(tradingChart)
-			fmt.Println(string(tradingChartJson))
+			//tradingChart := trading.CreateTradingChart(subscriber)
+			//tradingChartJson, _ := json.Marshal(tradingChart)
+			//fmt.Println(string(tradingChartJson))
 
 			continue
 		}
 		str := string("connection from server (" + session.ID() + ") : CLOSED")
-		log.Println(str)
+		log.Debug(str)
 
 		//remove client
 		unsubscribeClientToAllTopic(session.ID())
-		log.Println(clients.Clients)
-		log.Println(clients.ClientSessions)
+		//log.Println(clients.Clients)
+		//log.Println(clients.ClientSessions)
+
 		break
 	}
 }
@@ -84,18 +82,20 @@ func unsubscribeClientToAllTopic(sessionID string){
 }
 
 func subscribeClientToTopic(subscriber daos.Subscriber, session sockjs.Session){
-	log.Println("subscribe")
+	log.Debug("subscribe : ")
+	log.Debug(subscriber)
 
 	clients.AddSubscriber(subscriber, session)
 
-	log.Println(clients.Clients)
-	log.Println(clients.ClientSessions)
-	log.Println(clients.Intervals)
-	log.Println(clients.IntervalSessions)
+	//log.Println(clients.Clients)
+	//log.Println(clients.ClientSessions)
+	//log.Println(clients.Intervals)
+	//log.Println(clients.IntervalSessions)
 }
 
 func BroadcastMessage(topic string, str string){
 	//start := time.Now()
+	log.Debug("Broadcast message with topic : "+topic)
 	var c map[string] map[string] sockjs.Session
 	c = clients.GetAllClientsByTopic(topic)
 	for _, username := range(c) {

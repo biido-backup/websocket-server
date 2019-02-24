@@ -4,6 +4,8 @@ import (
 	"github.com/Shopify/sarama"
 )
 
+
+
 func CreateProducer(brokers []string) sarama.AsyncProducer {
 	config := sarama.NewConfig()
 	config.Producer.Retry.Max = 5
@@ -13,7 +15,7 @@ func CreateProducer(brokers []string) sarama.AsyncProducer {
 
 	producer, err := sarama.NewAsyncProducer(brokers, config)
 	if err != nil {
-		log.Error("CREATE PRODUCER ERROR:", err)
+		log.Error("Error create producer", err)
 	}
 
 	return producer

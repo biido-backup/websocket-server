@@ -2,25 +2,33 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/sirupsen/logrus"
+	"fmt"
 	"github.com/spf13/viper"
 	"sync"
+	"time"
 	"websocket-server/daos"
 	"websocket-server/engine"
 	"websocket-server/util/config"
+	"websocket-server/util/logger"
 	"websocket-server/util/redis"
 	"websocket-server/util/websocket"
 	"websocket-server/util/zeromq"
 )
 
-var log = logrus.New()
+var log *logger.CustomLog
+
 var clients *daos.Clients
 var mutex *sync.Mutex
 
+func init(){
+	config.LoadConfig()
+	log = logger.CreateLog("main")
+	fmt.Println("Logging Level : "+log.Level)
+	redis.ConnectRedis()
+}
 
 func main(){
-	config.LoadConfig()
-	redis.ConnectRedis()
+
 
 	var clients daos.Clients
 	clients = daos.CreateClients()
@@ -36,8 +44,8 @@ func main(){
 	for _, tradingRate := range(tradingRateList){
 		log.Println(tradingRate)
 		clients.SetTopic(tradingRate.StringDash())
-		go zeromq.Listen(tradingRate.StringDash()+":"+"ORDER_BOOK", &clients)
-		//time.Sleep(time.Millisecond)
+		zeromq.Listen(tradingRate.StringDash(), &clients)
+		time.Sleep(time.Millisecond)
 	}
 	go engine.ProcessTradingChart(tradingRateList)
 

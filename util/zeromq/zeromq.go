@@ -1,52 +1,115 @@
 package zeromq
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/go-zeromq/zmq4"
-	"github.com/sirupsen/logrus"
-	"context"
 	"github.com/spf13/viper"
-	"strings"
+	"time"
 	"websocket-server/const/trd"
 	"websocket-server/daos"
 	"websocket-server/daos/trading"
+	"websocket-server/util/logger"
 	"websocket-server/util/websocket"
 )
 
-var log = logrus.New()
+var log = logger.CreateLog("zeromq")
 
+func Listen(topic string, clients *daos.Clients){
+	var matchingEngineAddr = viper.GetString("zeromq.publisher.matching-engine")
+	var tradingBrokerAddr = viper.GetString("zeromq.publisher.trading-broker")
 
+	var suffixOrderBook = viper.GetString("zeromq.key.suffix.orderbook")
+	var suffixLast24h = viper.GetString("zeromq.key.suffix.last24h")
+	var suffixTradingHistory = viper.GetString("zeromq.key.suffix.tradinghistory")
+	//var suffixOpenOrder = viper.GetString("zeromq.key.suffix.openorder")
+	//var suffixOrderHistory = viper.GetString("zeromq.key.suffix.orderhistory")
+	//
 
-func Listen(zmqKey string, clients *daos.Clients){
+	//log.Println(topic)
 
-	topic := strings.Split(zmqKey,":")[0]
-	clients.SetTopic(topic)
+	//go ListenTest("tcp://localhost:5563", "BTC-IDR:ORDER_BOOK")
+	//go ListenTest("tcp://localhost:5564", "BTC-IDR:LAST24H_TRANSACTION")
+	//go ListenTest("tcp://localhost:5564", "BTC-IDR:TRADING_HISTORY")
 
+	go ListenOrderBook(matchingEngineAddr, topic, topic+suffixOrderBook, clients)
+	time.Sleep(time.Millisecond)
+	go ListenLast24h(tradingBrokerAddr, topic, topic+suffixLast24h, clients)
+	time.Sleep(time.Millisecond)
+	go ListenTradingHistory(tradingBrokerAddr, topic, topic+suffixTradingHistory, clients)
+	//go listen(tradingBrokerAddr, topic+":"+suffixOrderHistory, clients)
+}
+
+func ListenTest(publisher string, zmqKey string){
 	sub := zmq4.NewSub(context.Background())
 	defer sub.Close()
-
-	var publisher = viper.GetString("zeromq.publisher")
 
 	//dial
 	err := sub.Dial(publisher)
 	if err != nil {
-		log.Fatalf("could not dial: %v", err)
+		log.Error("could not dial publisher", err)
+		return
 	}
 
 	//subscribe
 	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
+
 	if err != nil {
-		log.Fatalf("could not subscribe: %v", err)
+		log.Error("could not subscribe publisher", err)
+		return
 	}
 
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
 		if err != nil {
-			log.Fatalf("could not receive message: %v", err)
+			log.Error("could not receive message", err)
+			continue
 		}
 		//
-		orderbook := daos.OrderBookFromJSONZeroMQ(msg.Frames[1])
+		var orderbook trading.OrderBookZeroMQ
+		//msg.Frames[0] --> zmqKey
+		//msg.Frames[1] --> message
+		orderbook = trading.OrderBookFromJSONZeroMQ(msg.Frames[1])
+
+		log.Println(orderbook)
+
+	}
+}
+
+func ListenOrderBook(publisher string, topic string, zmqKey string, clients *daos.Clients){
+
+	clients.SetTopic(topic)
+
+	sub := zmq4.NewSub(context.Background())
+	defer sub.Close()
+
+	//dial
+	err := sub.Dial(publisher)
+	if err != nil {
+		log.Error("could not dial publisher "+publisher, err)
+		return
+	}
+
+	//subscribe
+	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
+	if err != nil {
+		log.Error("could not subscribe publisher "+publisher, err)
+		return
+	}
+
+	for {
+		// Read envelope
+		msg, err := sub.Recv()
+		if err != nil {
+			log.Error("could not receive message", err)
+			continue
+		}
+		//
+		var orderbook trading.OrderBookZeroMQ
+		//msg.Frames[0] --> zmqKey
+		//msg.Frames[1] --> message
+		orderbook = trading.OrderBookFromJSONZeroMQ(msg.Frames[1])
 
 		trdOrderbook := trading.Orderbook{trdconst.ORDERBOOK, orderbook}
 		trdOrderbookJson, err := json.Marshal(trdOrderbook)
@@ -56,11 +119,6 @@ func Listen(zmqKey string, clients *daos.Clients){
 
 		log.Println(orderbook)
 
-
-		//msg.Frames[0] --> zmqKey
-		//msg.Frames[1] --> message
-		var message daos.Rate
-		_ = json.Unmarshal(msg.Frames[1], &message)
 		websocket.BroadcastMessage(topic, string(trdOrderbookJson))
 
 	}
@@ -68,3 +126,107 @@ func Listen(zmqKey string, clients *daos.Clients){
 }
 
 
+func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.Clients){
+
+	clients.SetTopic(topic)
+
+	sub := zmq4.NewSub(context.Background())
+	defer sub.Close()
+
+	//dial
+	err := sub.Dial(publisher)
+	if err != nil {
+		log.Error("could not dial publisher "+publisher, err)
+		return
+	}
+
+	//subscribe
+	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
+	if err != nil {
+		log.Error("could not subscribe publisher "+publisher, err)
+		return
+	}
+
+	for {
+		// Read envelope
+		msg, err := sub.Recv()
+		if err != nil {
+			log.Error("could not receive message", err)
+			continue
+		}
+		//
+
+		var last24h trading.Last24h
+		//msg.Frames[0] --> zmqKey
+		//msg.Frames[1] --> message
+		err = json.Unmarshal(msg.Frames[1], &last24h)
+		if err != nil {
+			log.Error("error when unmarshal last24h", err)
+		}
+
+		trdLast24h := trading.TradingLast24h{trdconst.LAST24H, last24h}
+		trdLast24hJson, err := json.Marshal(trdLast24h)
+		if err!=nil{
+			log.Error(err)
+		}
+
+		log.Println(trdLast24h)
+		websocket.BroadcastMessage(topic, string(trdLast24hJson))
+
+	}
+
+
+}
+
+
+func ListenTradingHistory(publisher string, topic string, zmqKey string, clients *daos.Clients){
+
+	clients.SetTopic(topic)
+
+	sub := zmq4.NewSub(context.Background())
+	defer sub.Close()
+
+	//dial
+	err := sub.Dial(publisher)
+	if err != nil {
+		log.Error("could not dial publisher "+publisher, err)
+		return
+	}
+
+	//subscribe
+	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
+	if err != nil {
+		log.Error("could not subscribe publisher "+publisher, err)
+		return
+	}
+
+	for {
+		// Read envelope
+		msg, err := sub.Recv()
+		if err != nil {
+			log.Error("could not receive message", err)
+			continue
+		}
+		//
+
+		var listHistory trading.ListHistory
+		//msg.Frames[0] --> zmqKey
+		//msg.Frames[1] --> message
+		err = json.Unmarshal(msg.Frames[1], &listHistory)
+		if err != nil {
+			log.Error("error when unmarshal listHistory", err)
+		}
+
+		trdListHistory := trading.TradingListHistory{trdconst.TRADINGHISTORY, listHistory}
+		trdListHistoryJson, err := json.Marshal(trdListHistory)
+		if err!=nil{
+			log.Error(err)
+		}
+
+		log.Println(trdListHistory)
+		websocket.BroadcastMessage(topic, string(trdListHistoryJson))
+
+	}
+
+
+}

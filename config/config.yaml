@@ -14,7 +14,16 @@ redis:
     key: TRADING-RATE
 
 zeromq:
-  publisher: tcp://localhost:5563
+  publisher:
+    matching-engine: tcp://localhost:5563
+    trading-broker: tcp://localhost:5564
+  key:
+    suffix:
+      orderbook: :ORDER_BOOK
+      openorder: :OPEN_ORDER
+      orderhistory: :ORDER_HISTORY
+      last24h: :LAST24H_TRANSACTION
+      tradinghistory: :TRADING_HISTORY
 
 sockjs:
   port: 18000

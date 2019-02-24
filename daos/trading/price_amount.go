@@ -1,4 +1,4 @@
-package daos
+package trading
 
 import (
 	"github.com/shopspring/decimal"
