@@ -11,10 +11,12 @@ func CreateTradingChart() {
 	TRDChart = &TradingChart{chartListMap}
 }
 
+func InitRateTradingChart(rate string){
+	TRDChart.chartListMap[rate] = make(map[string][]Chart)
+}
+
 func SetChartList(rate, unitOfTime string, chartList []Chart) {
-	unitTimeChatListMap := make(map[string][]Chart)
-	unitTimeChatListMap[unitOfTime] = chartList
-	TRDChart.chartListMap[rate] = unitTimeChatListMap
+	TRDChart.chartListMap[rate][unitOfTime] = chartList
 }
 
 func InsertChart(rate, unitOfTime string, chart Chart, quantity int64) {
