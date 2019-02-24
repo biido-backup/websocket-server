@@ -18,6 +18,7 @@ func ProcessTradingChart(tradingRateList []daos.Rate) {
 	tradingRateList = []daos.Rate{{"BTC", "IDR"}}
 	unitOfTimeList := []string{"1M", "5M", "15M", "30M", "1H", "6H", "12H", "1D", "1W", "1MO"}
 	for _, tradingRate := range tradingRateList {
+		daos.InitRateTradingChart(tradingRate.StringDash())
 		for _, unitOfTime := range unitOfTimeList {
 			go maintainTradingChart(tradingRate, unitOfTime, quantity)
 		}
@@ -50,7 +51,7 @@ func maintainTradingChart(rate daos.Rate, unitOfTime string, quantity int64) {
 		}
 
 		daos.SetChartList(rate.StringDash(), unitOfTime, chartList)
-		fmt.Println(daos.TRDChart)
+		fmt.Println(kafkaTopic, daos.GetChartList(rate.StringDash(), unitOfTime))
 
 		for {
 			msg := <- partitionConsumer.Messages()
