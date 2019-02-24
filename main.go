@@ -47,7 +47,7 @@ func main(){
 		zeromq.Listen(tradingRate.StringDash(), &clients)
 		time.Sleep(time.Millisecond)
 	}
-	go engine.ProcessTradingChart(tradingRateList)
+	engine.ProcessTradingChart(tradingRateList)
 
 	err := websocket.ServeSocket(&clients)
 	if err != nil {
