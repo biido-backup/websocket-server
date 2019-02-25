@@ -16,9 +16,7 @@ func ProcessTradingChart(tradingRateList []daos.Rate) {
 	daos.CreateTradingChart()
 	quantity := viper.GetInt64("tradingchart.quantity")
 
-	//tradingRateList = []daos.Rate{{"BION", "ETH"}}
-	//unitOfTimeList := []string{"1M"}
-	unitOfTimeList := []string{"1M", "5M", "15M", "30M", "1H", "6H", "12H", "1D", "1W", "1MO"}
+	unitOfTimeList := []string{"1MO", "1W", "1D", "12H", "6H", "1H", "30M", "15M", "5M", "1M"}
 	consumerRateUnitTimeMap := make(map[string]map[string]sarama.PartitionConsumer)
 	for _, tradingRate := range tradingRateList {
 		daos.InitRateTradingChart(tradingRate.StringDash())
@@ -56,15 +54,22 @@ func loadTradingChart(rate daos.Rate, unitOfTime string, quantity int64) sarama.
 		for {
 			msg := <- consumer.Messages()
 			chart := daos.ChartFromJSON(msg.Value)
-
 			chartList = append(chartList, chart)
+
+			if unitOfTime == "1M" {
+				daos.CalculateNextChart(rate.StringDash(), chart)
+			}
+
 			if msg.Offset == offset - 1 {
+				if unitOfTime != "1M" {
+					daos.SetNextChart(rate.StringDash(), unitOfTime, chart.Time)
+				}
 				break
 			}
 		}
 
 		daos.SetChartList(rate.StringDash(), unitOfTime, chartList)
-		fmt.Println(kafkaTopic, daos.GetChartList(rate.StringDash(), unitOfTime))
+		fmt.Println(daos.TRDChart)
 	} else {
 		consumer = kafka.CreateConsumerPartition(client, kafkaTopic, 0, 0)
 	}
@@ -75,12 +80,15 @@ func loadTradingChart(rate daos.Rate, unitOfTime string, quantity int64) sarama.
 func maintainTradingChart(rate daos.Rate, unitOfTime string, quantity int64, consumer sarama.PartitionConsumer) {
 	for {
 		msg := <- consumer.Messages()
-		daos.InsertChart(rate.StringDash(), unitOfTime, daos.ChartFromJSON(msg.Value), quantity)
+		chart := daos.ChartFromJSON(msg.Value)
+		daos.InsertChart(rate.StringDash(), unitOfTime, chart, quantity)
+		if unitOfTime == "1M" {
+			daos.CalculateNextChart(rate.StringDash(), chart)
+		}
+		fmt.Println(daos.TRDChart)
 
 		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.Chart{daos.ChartFromJSON(msg.Value)}}
 		tradingChartJson, _ := json.Marshal(tradingChart)
-		fmt.Println(string(tradingChartJson))
-		fmt.Println(rate.StringDash(), unitOfTime, daos.GetChartList(rate.StringDash(), unitOfTime))
 
 		if unitOfTime == "1M" {
 			websocket.BroadcastMessageWithInterval(rate.StringDash(), "1m", string(tradingChartJson))
