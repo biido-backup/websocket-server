@@ -55,14 +55,14 @@ func loadTradingChart(rate daos.Rate, unitOfTime string, quantity int64) sarama.
 			chart := daos.ChartFromJSON(msg.Value)
 			chartList = append(chartList, chart)
 
-			if unitOfTime == "1M" {
-				daos.CalculateNextChart(rate.StringDash(), chart)
-			}
+			//if unitOfTime == "1M" {
+			//	daos.CalculateNextChart(rate.StringDash(), chart)
+			//}
 
 			if msg.Offset == offset - 1 {
-				if unitOfTime != "1M" {
-					daos.SetNextChart(rate.StringDash(), unitOfTime, chart.Time)
-				}
+				//if unitOfTime != "1M" {
+				//	daos.SetNextChart(rate.StringDash(), unitOfTime, chart.Time)
+				//}
 				break
 			}
 		}
@@ -81,9 +81,9 @@ func maintainTradingChart(rate daos.Rate, unitOfTime string, quantity int64, con
 		msg := <- consumer.Messages()
 		chart := daos.ChartFromJSON(msg.Value)
 		daos.InsertChart(rate.StringDash(), unitOfTime, chart, quantity)
-		if unitOfTime == "1M" {
-			daos.CalculateNextChart(rate.StringDash(), chart)
-		}
+		//if unitOfTime == "1M" {
+		//	daos.CalculateNextChart(rate.StringDash(), chart)
+		//}
 		//fmt.Println(daos.TRDChart)
 
 		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.Chart{daos.ChartFromJSON(msg.Value)}}
