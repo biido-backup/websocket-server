@@ -99,6 +99,9 @@ func SockjsHandler(session sockjs.Session) {
 			if err != nil {
 				log.Error(err)
 			}
+			openOrders.Type = trdconst.OPENORDER
+			openOrdersJson, _ := json.Marshal(openOrders)
+			session.Send(string(openOrdersJson))
 
 			continue
 		}

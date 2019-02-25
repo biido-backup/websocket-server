@@ -283,11 +283,11 @@ func ListenOpenOrder(publisher string, topic string, zmqKey string, clients *dao
 			log.Error("error when marshal listOpenOrder", err)
 		}
 
-		cache.SetCacheByTopicAndType(topic, trdconst.OPENORDER, trdListOpenOrder)
 		username := listOpenOrder.Username
 		//log.Println("username : ",username)
 		log.Println(trdListOpenOrder)
 		websocket.SendMessageToUser(topic, username, string(trdListOpenOrderJson))
+
 
 	}
 }
