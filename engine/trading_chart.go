@@ -2,15 +2,17 @@ package engine
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/spf13/viper"
 	"websocket-server/const/trd"
 	"websocket-server/daos"
 	"websocket-server/daos/trading"
 	"websocket-server/util/kafka"
+	"websocket-server/util/logger"
 	"websocket-server/util/websocket"
 )
+
+var log = logger.CreateLog("engine")
 
 func ProcessTradingChart(tradingRateList []daos.Rate) {
 	daos.CreateTradingChart()
@@ -64,7 +66,7 @@ func loadTradingChart(rate daos.Rate, unitOfTime string, quantity int64) sarama.
 		}
 
 		daos.SetChartList(rate.StringDash(), unitOfTime, chartList)
-		fmt.Println(kafkaTopic, daos.GetChartList(rate.StringDash(), unitOfTime))
+		//log.Debug(kafkaTopic, daos.GetChartList(rate.StringDash(), unitOfTime))
 	} else {
 		consumer = kafka.CreateConsumerPartition(client, kafkaTopic, 0, 0)
 	}
@@ -79,8 +81,8 @@ func maintainTradingChart(rate daos.Rate, unitOfTime string, quantity int64, con
 
 		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.Chart{daos.ChartFromJSON(msg.Value)}}
 		tradingChartJson, _ := json.Marshal(tradingChart)
-		fmt.Println(string(tradingChartJson))
-		fmt.Println(rate.StringDash(), unitOfTime, daos.GetChartList(rate.StringDash(), unitOfTime))
+		//log.Debug(string(tradingChartJson))
+		//log.Debug(rate.StringDash(), unitOfTime, daos.GetChartList(rate.StringDash(), unitOfTime))
 
 		if unitOfTime == "1M" {
 			websocket.BroadcastMessageWithInterval(rate.StringDash(), "1m", string(tradingChartJson))

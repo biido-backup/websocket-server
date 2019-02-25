@@ -6,6 +6,7 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"net/http"
 	"websocket-server/daos"
+	"websocket-server/daos/trading"
 	"websocket-server/util/logger"
 )
 
@@ -39,17 +40,17 @@ func SockjsHandler(session sockjs.Session) {
 	for {
 		if msg, err := session.Recv(); err == nil {
 
-			//log.Println(msg)
+			log.Debug(msg)
 
 			var subscriber daos.Subscriber
 			err := json.Unmarshal([]byte(msg), &subscriber)
-
-			//log.Println(subscriber)
 
 			if err != nil {
 				log.Error("Failed to deserialize message", err)
 				continue
 			}
+
+			log.Debug(subscriber)
 
 			unsubscribeClientToAllTopic(session.ID())
 			subscribeClientToTopic(subscriber, session)
@@ -57,9 +58,11 @@ func SockjsHandler(session sockjs.Session) {
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
 
-			//tradingChart := trading.CreateTradingChart(subscriber)
-			//tradingChartJson, _ := json.Marshal(tradingChart)
+			tradingChart := trading.CreateTradingChart(subscriber)
+			tradingChartJson, _ := json.Marshal(tradingChart)
 			//fmt.Println(string(tradingChartJson))
+
+			session.Send(string(tradingChartJson))
 
 			continue
 		}
@@ -87,7 +90,7 @@ func subscribeClientToTopic(subscriber daos.Subscriber, session sockjs.Session){
 
 	clients.AddSubscriber(subscriber, session)
 
-	//log.Println(clients.Clients)
+	log.Println(clients.Clients)
 	//log.Println(clients.ClientSessions)
 	//log.Println(clients.Intervals)
 	//log.Println(clients.IntervalSessions)
