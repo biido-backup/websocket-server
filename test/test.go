@@ -2,11 +2,14 @@ package main
 
 import (
 	"log"
-	"websocket-server/daos/trading"
-	"websocket-server/service"
+	"sync"
+	"time"
 	"websocket-server/util/config"
 	"websocket-server/util/database"
 )
+
+var mu *sync.RWMutex
+var i = make(map[string] int)
 
 func main() {
 	config.LoadConfig();
@@ -28,10 +31,10 @@ func main() {
 	//
 	//log.Println(listHistory)
 
-	var l trading.Last24h
-	service.GetLast24HTransactionByRate(&l, "LTC/IDR")
-
-	log.Println(l)
+	//var l trading.Last24h
+	//service.GetLast24HTransactionByRate(&l, "LTC/IDR")
+	//
+	//log.Println(l)
 
 	//log.Println("TESS")
 	//var openOrders trading.OpenOrders
@@ -53,4 +56,22 @@ func main() {
 	//log.Println(orderHistories.Type)
 	//log.Println(orderHistories.Size)
 
+	mu = &sync.RWMutex{}
+
+	i["tes"] = 0
+	from := 1000000
+	for ii:=0; ii<from; ii++ {
+		go inc()
+	}
+
+	log.Println(i["tes"])
+	time.Sleep(time.Minute)
+}
+
+
+func inc(){
+	mu.Lock()
+	i["tes"] += 1
+	log.Println(i["tes"])
+	mu.Unlock()
 }

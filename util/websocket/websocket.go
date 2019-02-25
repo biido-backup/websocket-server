@@ -15,17 +15,17 @@ import (
 
 var log = logger.CreateLog("websocket")
 
-var clients *daos.Clients
+//var clients = &daos.MyClients
 
-func ServeSocket(cls *daos.Clients) error{
+//func ServeSocket(cls *daos.Clients) error{
+func ServeSocket() error{
 
-	clients = cls
+	//clients = cls
+	//clients = &daos.MyClients
 
 	port := viper.GetString("sockjs.port")
 	path := viper.GetString("sockjs.path")
 
-	log.Debug(port)
-	log.Debug(path)
 
 	handler := sockjs.NewHandler(path, sockjs.DefaultOptions, SockjsHandler)
 	return http.ListenAndServe(":"+port, handler)
@@ -97,7 +97,7 @@ func SockjsHandler(session sockjs.Session) {
 			var openOrders trading.OpenOrders
 			err = service.GetOpenOrdersByUsernameAndRate(&openOrders, subscriber.Username, rate.StringSlah())
 			if err != nil {
-				log.Println(err)
+				log.Error(err)
 			}
 
 			continue
@@ -115,8 +115,8 @@ func SockjsHandler(session sockjs.Session) {
 }
 
 func unsubscribeClientToAllTopic(sessionID string){
-	for topic, _ := range(clients.ClientSessions) {
-		clients.RemoveSubscriber(topic, sessionID)
+	for topic, _ := range(daos.MyClients.ClientSessions) {
+		daos.MyClients.RemoveSubscriber(topic, sessionID)
 	}
 }
 
@@ -124,9 +124,9 @@ func subscribeClientToTopic(subscriber daos.Subscriber, session sockjs.Session){
 	log.Debug("subscribe : ")
 	log.Debug(subscriber)
 
-	clients.AddSubscriber(subscriber, session)
+	daos.MyClients.AddSubscriber(subscriber, session)
 
-	log.Println(clients.Clients)
+	//log.Println(clients.Clients)
 	//log.Println(clients.ClientSessions)
 	//log.Println(clients.Intervals)
 	//log.Println(clients.IntervalSessions)
@@ -134,9 +134,8 @@ func subscribeClientToTopic(subscriber daos.Subscriber, session sockjs.Session){
 
 func BroadcastMessage(topic string, str string){
 	//start := time.Now()
-	log.Debug("Broadcast message with topic : "+topic)
 	var c map[string] map[string] sockjs.Session
-	c = clients.GetAllClientsByTopic(topic)
+	c = daos.MyClients.GetAllClientsByTopic(topic)
 	for _, username := range(c) {
 		for _, session := range(username){
 			session.Send(str)
@@ -150,7 +149,7 @@ func BroadcastMessage(topic string, str string){
 
 func BroadcastMessageWithInterval(topic string, interval string, str string){
 	var sessions map[string] sockjs.Session
-	sessions = clients.GetListSessionByTopicAndInterval(topic, interval)
+	sessions = daos.MyClients.GetListSessionByTopicAndInterval(topic, interval)
 	for _, session := range(sessions) {
 		session.Send(str)
 	}
@@ -159,7 +158,7 @@ func BroadcastMessageWithInterval(topic string, interval string, str string){
 func SendMessageToUser(topic string, username string, str string){
 
 	var sessions map[string] sockjs.Session
-	sessions = clients.GetListSessionByTopicAndUsername(topic, username)
+	sessions = daos.MyClients.GetListSessionByTopicAndUsername(topic, username)
 	for _, session := range(sessions) {
 		session.Send(str)
 	}

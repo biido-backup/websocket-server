@@ -41,7 +41,9 @@ func FillCacheByRate(rate daos.Rate){
 	log.Println(rate.StringSlah())
 
 	var last24h trading.Last24h
+
 	err = service.GetLast24HTransactionByRate(&last24h, rate.StringSlah())
+
 	if err != nil{
 		log.Fatal("Error query to last24h", err)
 	}

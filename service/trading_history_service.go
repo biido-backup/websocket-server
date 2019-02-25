@@ -26,6 +26,7 @@ type TradingHistory struct {
 }
 
 func GetLastTradingHistoryBySize(listHistory *trading.ListHistory, rate string, size int64) error {
+	start := time.Now()
 	var histories []trading.History
 
 	q := database.Db.Select("id AS id", "amount AS amount", "price AS price", "trading_type AS type", "created_at AS time").
@@ -42,12 +43,14 @@ func GetLastTradingHistoryBySize(listHistory *trading.ListHistory, rate string, 
 
 	listHistory.Histories = histories
 
+	log.Println(rate+" : hist",time.Since(start))
 	return nil
 }
 
 
 func GetLast24HTransactionByRate(last24h *trading.Last24h, rate string) error {
 
+	start := time.Now()
 	//var last24h trading.Last24h
 
 	tLast24h := time.Now().AddDate(0,0,-1)
@@ -116,6 +119,7 @@ func GetLast24HTransactionByRate(last24h *trading.Last24h, rate string) error {
 	//log.Println((*last24h).LastPrice)
 	//log.Println((*last24h).State)
 
+	log.Println(rate+" : 24hl",time.Since(start))
 	return nil
 
 }

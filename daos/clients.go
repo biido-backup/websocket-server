@@ -3,7 +3,10 @@ package daos
 import (
 	"sync"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"websocket-server/util/logger"
 )
+
+var log = logger.CreateLog("daos")
 
 //
 //type Clients struct {
@@ -17,153 +20,160 @@ import (
 //
 //func CreateClients() Clients{
 //
-//	var clients Clients;
+//	var MyClients Clients;
 //
-//	clients.mu.Lock()
-//	clients.Clients = make(map[string] map[string] map[string] sockjs.Session)
-//	clients.ClientSessions = make(map[string] map[string] string)
-//	clients.Intervals = make(map[string] map[string] map[string] sockjs.Session)
-//	clients.IntervalSessions = make(map[string] map[string] string)
-//	clients.mu.Unlock()
+//	MyClients.mu.Lock()
+//	MyClients.Clients = make(map[string] map[string] map[string] sockjs.Session)
+//	MyClients.ClientSessions = make(map[string] map[string] string)
+//	MyClients.Intervals = make(map[string] map[string] map[string] sockjs.Session)
+//	MyClients.IntervalSessions = make(map[string] map[string] string)
+//	MyClients.mu.Unlock()
 //
-//	return clients
+//	return MyClients
 //
 //}
 //
-//func (clients Clients) SetTopic(topic string) {
-//	clients.mu.Lock()
-//	clients.Clients[topic] = make(map[string] map[string] sockjs.Session)
-//	clients.ClientSessions[topic] = make(map[string] string)
-//	clients.Intervals[topic] = make(map[string] map[string] sockjs.Session)
-//	clients.IntervalSessions[topic] = make(map[string] string)
-//	clients.mu.Unlock()
+//func (MyClients Clients) SetTopic(topic string) {
+//	MyClients.mu.Lock()
+//	MyClients.Clients[topic] = make(map[string] map[string] sockjs.Session)
+//	MyClients.ClientSessions[topic] = make(map[string] string)
+//	MyClients.Intervals[topic] = make(map[string] map[string] sockjs.Session)
+//	MyClients.IntervalSessions[topic] = make(map[string] string)
+//	MyClients.mu.Unlock()
 //}
 //
-//func (clients Clients) AddSubscriber(subscriber Subscriber,session sockjs.Session){
+//func (MyClients Clients) AddSubscriber(subscriber Subscriber,session sockjs.Session){
 //	//CLients
-//	clients.mu.Lock()
-//	clientSession := clients.GetListSessionByTopicAndUsername(subscriber.Topic, subscriber.Username)
+//	MyClients.mu.Lock()
+//	clientSession := MyClients.GetListSessionByTopicAndUsername(subscriber.Topic, subscriber.Username)
 //
 //	if clientSession == nil{
-//		clients.Clients[subscriber.Topic][subscriber.Username] = make(map[string] sockjs.Session)
+//		MyClients.Clients[subscriber.Topic][subscriber.Username] = make(map[string] sockjs.Session)
 //	}
-//	clients.Clients[subscriber.Topic][subscriber.Username][session.ID()] = session
-//	clients.ClientSessions[subscriber.Topic][session.ID()] = subscriber.Username
+//	MyClients.Clients[subscriber.Topic][subscriber.Username][session.ID()] = session
+//	MyClients.ClientSessions[subscriber.Topic][session.ID()] = subscriber.Username
 //
 //	//Interval
-//	intervalSession := clients.GetListSessionByTopicAndInterval(subscriber.Topic, subscriber.Interval)
+//	intervalSession := MyClients.GetListSessionByTopicAndInterval(subscriber.Topic, subscriber.Interval)
 //	if intervalSession == nil{
-//		clients.Intervals[subscriber.Topic][subscriber.Interval] = make(map[string] sockjs.Session)
+//		MyClients.Intervals[subscriber.Topic][subscriber.Interval] = make(map[string] sockjs.Session)
 //	}
-//	clients.Intervals[subscriber.Topic][subscriber.Interval][session.ID()] = session
-//	clients.IntervalSessions[subscriber.Topic][session.ID()] = subscriber.Interval
-//	clients.mu.Unlock()
+//	MyClients.Intervals[subscriber.Topic][subscriber.Interval][session.ID()] = session
+//	MyClients.IntervalSessions[subscriber.Topic][session.ID()] = subscriber.Interval
+//	MyClients.mu.Unlock()
 //}
 //
-//func (clients Clients) RemoveSubscriber(topic string, sessionID string){
-//	username := clients.GetUsernameByTopicAndSessionId(topic, sessionID)
+//func (MyClients Clients) RemoveSubscriber(topic string, sessionID string){
+//	username := MyClients.GetUsernameByTopicAndSessionId(topic, sessionID)
 //
-//	clients.mu.Lock()
-//	delete(clients.Clients[topic][username], sessionID)
+//	MyClients.mu.Lock()
+//	delete(MyClients.Clients[topic][username], sessionID)
 //
-//	clientSession := clients.GetListSessionByTopicAndUsername(topic, username)
+//	clientSession := MyClients.GetListSessionByTopicAndUsername(topic, username)
 //	if len(clientSession) == 0 {
-//		delete(clients.Clients[topic], username)
+//		delete(MyClients.Clients[topic], username)
 //	}
-//	delete(clients.ClientSessions[topic], sessionID)
+//	delete(MyClients.ClientSessions[topic], sessionID)
 //
-//	interval := clients.GetIntervalByTopicAndSessionId(topic, sessionID)
+//	interval := MyClients.GetIntervalByTopicAndSessionId(topic, sessionID)
 //
-//	delete(clients.Intervals[topic][interval], sessionID)
+//	delete(MyClients.Intervals[topic][interval], sessionID)
 //
-//	intervalSession := clients.GetListSessionByTopicAndInterval(topic, interval)
+//	intervalSession := MyClients.GetListSessionByTopicAndInterval(topic, interval)
 //
 //	if len(intervalSession) == 0 {
-//		delete(clients.Intervals[topic], interval)
+//		delete(MyClients.Intervals[topic], interval)
 //	}
 //
-//	delete(clients.IntervalSessions[topic], sessionID)
-//	clients.mu.Unlock()
+//	delete(MyClients.IntervalSessions[topic], sessionID)
+//	MyClients.mu.Unlock()
 //
 //}
 //
-//func (clients Clients) GetUsernameByTopicAndSessionId(topic string, sessionId string) string{
+//func (MyClients Clients) GetUsernameByTopicAndSessionId(topic string, sessionId string) string{
 //	var username string
-//	clients.mu.RLock()
-//	username = clients.ClientSessions[topic][sessionId]
-//	clients.mu.RUnlock()
+//	MyClients.mu.RLock()
+//	username = MyClients.ClientSessions[topic][sessionId]
+//	MyClients.mu.RUnlock()
 //	return username
 //}
 //
-//func (clients Clients) GetIntervalByTopicAndSessionId(topic string, sessionId string) string{
+//func (MyClients Clients) GetIntervalByTopicAndSessionId(topic string, sessionId string) string{
 //	var interval string
-//	clients.mu.RLock()
-//	interval = clients.IntervalSessions[topic][sessionId]
-//	clients.mu.RUnlock()
+//	MyClients.mu.RLock()
+//	interval = MyClients.IntervalSessions[topic][sessionId]
+//	MyClients.mu.RUnlock()
 //	return interval
 //}
 //
-//func (clients Clients) GetAllClientsByTopic(topic string) map[string] map[string] sockjs.Session{
+//func (MyClients Clients) GetAllClientsByTopic(topic string) map[string] map[string] sockjs.Session{
 //	var c map[string] map[string] sockjs.Session
-//	clients.mu.RLock()
-//	c = clients.Clients[topic]
-//	clients.mu.RUnlock()
+//	MyClients.mu.RLock()
+//	c = MyClients.Clients[topic]
+//	MyClients.mu.RUnlock()
 //	return c
 //}
 //
-//func (clients Clients) GetListSessionByTopicAndUsername(topic string, username string) map[string] sockjs.Session{
+//func (MyClients Clients) GetListSessionByTopicAndUsername(topic string, username string) map[string] sockjs.Session{
 //	sessions := make(map[string] sockjs.Session)
-//	clients.mu.RLock()
-//	sessions = clients.Clients[topic][username]
-//	clients.mu.RUnlock()
+//	MyClients.mu.RLock()
+//	sessions = MyClients.Clients[topic][username]
+//	MyClients.mu.RUnlock()
 //	return sessions
 //}
 //
-//func (clients Clients) GetListSessionByTopicAndInterval(topic string, interval string) map[string] sockjs.Session{
+//func (MyClients Clients) GetListSessionByTopicAndInterval(topic string, interval string) map[string] sockjs.Session{
 //	sessions := make(map[string] sockjs.Session)
-//	clients.mu.RLock()
-//	sessions = clients.Intervals[topic][interval]
-//	clients.mu.RUnlock()
+//	MyClients.mu.RLock()
+//	sessions = MyClients.Intervals[topic][interval]
+//	MyClients.mu.RUnlock()
 //	return sessions
 //}
 
 
 type Clients struct {
-	muClients         	sync.RWMutex
+	muClients         	*sync.RWMutex
 	Clients           	map[string] map[string] map[string] sockjs.Session //topic -> username -> sessionID : Session
 
-	muClientsSessions 	sync.RWMutex
+	muClientsSessions 	*sync.RWMutex
 	ClientSessions    	map[string] map[string] string                     //topic -> sessionId : username
 
-	muIntervals 		sync.RWMutex
+	muIntervals 		*sync.RWMutex
 	Intervals 			map[string] map[string] map[string] sockjs.Session 	//topic -> interval -> sessionID : Session
 
-	muIntervalSessions 	sync.RWMutex
+	muIntervalSessions 	*sync.RWMutex
 	IntervalSessions 	map[string] map[string] string    					//topic -> sessionId : interval
 }
 
+var MyClients Clients
 
-func CreateClients() Clients{
 
-	var clients Clients;
+func CreateClients(){
 
-	clients.muClients.Lock()
-	clients.Clients = make(map[string] map[string] map[string] sockjs.Session)
-	clients.muClients.Unlock()
+	//var MyClients Clients;
 
-	clients.muClientsSessions.Lock()
-	clients.ClientSessions = make(map[string] map[string] string)
-	clients.muClientsSessions.Unlock()
+	MyClients.muClients = &sync.RWMutex{}
+	MyClients.muClientsSessions = &sync.RWMutex{}
+	MyClients.muIntervals = &sync.RWMutex{}
+	MyClients.muIntervalSessions = &sync.RWMutex{}
 
-	clients.muIntervals.Lock()
-	clients.Intervals = make(map[string] map[string] map[string] sockjs.Session)
-	clients.muIntervals.Unlock()
+	MyClients.muClients.Lock()
+	MyClients.Clients = make(map[string] map[string] map[string] sockjs.Session)
+	MyClients.muClients.Unlock()
 
-	clients.muIntervalSessions.Lock()
-	clients.IntervalSessions = make(map[string] map[string] string)
-	clients.muIntervalSessions.Unlock()
+	MyClients.muClientsSessions.Lock()
+	MyClients.ClientSessions = make(map[string] map[string] string)
+	MyClients.muClientsSessions.Unlock()
 
-	return clients
+	MyClients.muIntervals.Lock()
+	MyClients.Intervals = make(map[string] map[string] map[string] sockjs.Session)
+	MyClients.muIntervals.Unlock()
+
+	MyClients.muIntervalSessions.Lock()
+	MyClients.IntervalSessions = make(map[string] map[string] string)
+	MyClients.muIntervalSessions.Unlock()
+
+	//return MyClients
 
 }
 
