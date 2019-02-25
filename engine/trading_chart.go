@@ -71,34 +71,36 @@ func loadTradingChart(rate daos.Rate, unitOfTime string, quantity int64) sarama.
 }
 
 func maintainTradingChart(rate daos.Rate, unitOfTime string, quantity int64, consumer sarama.PartitionConsumer) {
-	for {
-		msg := <- consumer.Messages()
-		daos.InsertChart(rate.StringDash(), unitOfTime, daos.ChartFromJSON(msg.Value), quantity)
+	if consumer != nil {
+		for {
+			msg := <- consumer.Messages()
+			daos.InsertChart(rate.StringDash(), unitOfTime, daos.ChartFromJSON(msg.Value), quantity)
 
-		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.Chart{daos.ChartFromJSON(msg.Value)}}
-		tradingChartJson, _ := json.Marshal(tradingChart)
-		fmt.Println(string(tradingChartJson))
+			tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.Chart{daos.ChartFromJSON(msg.Value)}}
+			tradingChartJson, _ := json.Marshal(tradingChart)
+			fmt.Println(string(tradingChartJson))
 
-		if unitOfTime == "1M" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "1m", string(tradingChartJson))
-		} else if unitOfTime == "5M" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "5m", string(tradingChartJson))
-		} else if unitOfTime == "15M" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "15m", string(tradingChartJson))
-		} else if unitOfTime == "30M" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "30m", string(tradingChartJson))
-		} else if unitOfTime == "1H" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "1h", string(tradingChartJson))
-		} else if unitOfTime == "6H" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "6h", string(tradingChartJson))
-		} else if unitOfTime == "12H" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "12h", string(tradingChartJson))
-		} else if unitOfTime == "1D" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "1d", string(tradingChartJson))
-		} else if unitOfTime == "1W" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "1w", string(tradingChartJson))
-		}  else if unitOfTime == "1MO" {
-			websocket.BroadcastMessageWithInterval(rate.StringDash(), "1M", string(tradingChartJson))
+			if unitOfTime == "1M" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "1m", string(tradingChartJson))
+			} else if unitOfTime == "5M" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "5m", string(tradingChartJson))
+			} else if unitOfTime == "15M" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "15m", string(tradingChartJson))
+			} else if unitOfTime == "30M" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "30m", string(tradingChartJson))
+			} else if unitOfTime == "1H" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "1h", string(tradingChartJson))
+			} else if unitOfTime == "6H" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "6h", string(tradingChartJson))
+			} else if unitOfTime == "12H" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "12h", string(tradingChartJson))
+			} else if unitOfTime == "1D" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "1d", string(tradingChartJson))
+			} else if unitOfTime == "1W" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "1w", string(tradingChartJson))
+			}  else if unitOfTime == "1MO" {
+				websocket.BroadcastMessageWithInterval(rate.StringDash(), "1M", string(tradingChartJson))
+			}
 		}
 	}
 }
