@@ -6,12 +6,12 @@ import (
 )
 
 type Last24h struct {
-	Low 			decimal.Decimal			`json:"low"`
-	High 			decimal.Decimal			`json:"high"`
-	Volume			decimal.Decimal			`json:"volume"`
-	LastPrice		decimal.Decimal			`json:"lastPrice"`
-	Change			decimal.Decimal			`json:"change"`
-	State			string					`json:"state"`
+	Low 			decimal.NullDecimal			`json:"low"`
+	High 			decimal.NullDecimal			`json:"high"`
+	Volume			decimal.NullDecimal			`json:"volume"`
+	LastPrice		decimal.Decimal				`json:"lastPrice"`
+	Change			decimal.Decimal				`json:"change"`
+	State			string						`json:"state"`
 }
 
 func (last24h Last24h) JsonLast24h() (string, error) {

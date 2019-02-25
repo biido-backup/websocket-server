@@ -34,4 +34,7 @@ func (listOpenOrder ListOpenOrder) JsonListOpenOrder() (string, error) {
 	return string(listOpenOrderJson), nil
 }
 
-
+type OpenOrders struct {
+	Type 				string					`json:"type"`
+	Payload				[]OpenOrder				`json:"payload"`
+}

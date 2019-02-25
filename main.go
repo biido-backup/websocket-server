@@ -6,9 +6,11 @@ import (
 	"github.com/spf13/viper"
 	"sync"
 	"time"
+	"websocket-server/cache"
 	"websocket-server/daos"
 	"websocket-server/engine"
 	"websocket-server/util/config"
+	"websocket-server/util/database"
 	"websocket-server/util/logger"
 	"websocket-server/util/redis"
 	"websocket-server/util/websocket"
@@ -25,10 +27,11 @@ func init(){
 	log = logger.CreateLog("main")
 	fmt.Println("Logging Level : "+log.Level)
 	redis.ConnectRedis()
+	database.ConnectDbPostgres()
+	cache.InitCache()
 }
 
 func main(){
-
 
 	var clients daos.Clients
 	clients = daos.CreateClients()
@@ -44,6 +47,7 @@ func main(){
 	for _, tradingRate := range(tradingRateList){
 		log.Println(tradingRate)
 		clients.SetTopic(tradingRate.StringDash())
+		cache.FillCacheByRate(tradingRate)
 		zeromq.Listen(tradingRate.StringDash(), &clients)
 		time.Sleep(time.Millisecond)
 	}

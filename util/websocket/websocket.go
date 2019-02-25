@@ -5,8 +5,11 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"net/http"
+	"websocket-server/cache"
+	"websocket-server/const/trd"
 	"websocket-server/daos"
 	"websocket-server/daos/trading"
+	"websocket-server/service"
 	"websocket-server/util/logger"
 )
 
@@ -50,6 +53,8 @@ func SockjsHandler(session sockjs.Session) {
 				continue
 			}
 
+			rate := daos.GetRateFromStringDash(subscriber.Topic)
+
 			log.Debug(subscriber)
 
 			unsubscribeClientToAllTopic(session.ID())
@@ -58,11 +63,42 @@ func SockjsHandler(session sockjs.Session) {
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
 
+			//Candle Stick
 			tradingChart := trading.CreateTradingChart(subscriber)
 			tradingChartJson, _ := json.Marshal(tradingChart)
-			//fmt.Println(string(tradingChartJson))
-
 			session.Send(string(tradingChartJson))
+
+			//Orderbook
+			orderBook := cache.GetCacheByTopicAndType(subscriber.Topic, trdconst.ORDERBOOK).(trading.Orderbook)
+			orderBookJson, _ := json.Marshal(orderBook)
+			session.Send(string(orderBookJson))
+
+			//TradingHistory
+			tradingHistory := cache.GetCacheByTopicAndType(subscriber.Topic, trdconst.TRADINGHISTORY).(trading.TradingListHistory)
+			tradingHistoryJson, _ := json.Marshal(tradingHistory)
+			session.Send(string(tradingHistoryJson))
+
+			//Last24H
+			last24h := cache.GetCacheByTopicAndType(subscriber.Topic, trdconst.LAST24H).(trading.TradingLast24h)
+			last24hJson, _ := json.Marshal(last24h)
+			session.Send(string(last24hJson))
+
+			//OrderHistory
+			var orderHistories trading.OrderHistories
+			err = service.GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(&orderHistories, subscriber.Username, rate.StringSlah(), 0, 10)
+			if err != nil {
+				log.Println(err)
+			}
+			orderHistories.Type = trdconst.ORDERHISTORY
+			orderHistoriesJson, _ := json.Marshal(orderHistories)
+			session.Send(string(orderHistoriesJson))
+
+			//OpenOrder
+			var openOrders trading.OpenOrders
+			err = service.GetOpenOrdersByUsernameAndRate(&openOrders, subscriber.Username, rate.StringSlah())
+			if err != nil {
+				log.Println(err)
+			}
 
 			continue
 		}

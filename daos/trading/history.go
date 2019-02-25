@@ -1,6 +1,7 @@
 package trading
 
 import (
+	"database/sql"
 	"encoding/json"
 	"github.com/shopspring/decimal"
 	"time"
@@ -10,7 +11,7 @@ type History struct {
 	Id 					uint64					`json:"id"`
 	Amount       		decimal.Decimal			`json:"amount"`
 	Price        		decimal.Decimal			`json:"price"`
-	Type				string					`json:"type"`
+	Type				sql.NullString			`json:"type"`
 	Time				time.Time				`json:"time"`
 }
 
@@ -29,5 +30,5 @@ func (listHistory ListHistory) JsonListHistory() (string, error) {
 
 type TradingListHistory struct {
 	Type 			string 						`json:"type"`
-	ListHistory		ListHistory					`json:"listHistory"`
+	Payload			ListHistory						`json:"payload"`
 }

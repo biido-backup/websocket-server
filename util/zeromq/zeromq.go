@@ -6,6 +6,7 @@ import (
 	"github.com/go-zeromq/zmq4"
 	"github.com/spf13/viper"
 	"time"
+	"websocket-server/cache"
 	"websocket-server/const/trd"
 	"websocket-server/daos"
 	"websocket-server/daos/trading"
@@ -121,6 +122,7 @@ func ListenOrderBook(publisher string, topic string, zmqKey string, clients *dao
 		}
 
 		log.Println(orderbook)
+		cache.SetCacheByTopicAndType(topic, trdconst.ORDERBOOK, trdOrderbookJson)
 
 		websocket.BroadcastMessage(topic, string(trdOrderbookJson))
 
@@ -174,6 +176,8 @@ func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.
 		}
 
 		log.Println(trdLast24h)
+		cache.SetCacheByTopicAndType(topic, trdconst.LAST24H, trdLast24h)
+
 		websocket.BroadcastMessage(topic, string(trdLast24hJson))
 
 	}
@@ -227,6 +231,8 @@ func ListenTradingHistory(publisher string, topic string, zmqKey string, clients
 		}
 
 		log.Println(trdListHistory)
+		cache.SetCacheByTopicAndType(topic, trdconst.LAST24H, trdListHistory)
+
 		websocket.BroadcastMessage(topic, string(trdListHistoryJson))
 
 	}
@@ -270,7 +276,7 @@ func ListenOpenOrder(publisher string, topic string, zmqKey string, clients *dao
 			log.Error("error when unmarshal listOpenOrder", err)
 		}
 
-		trdListOpenOrder := trading.ListOpenOrder{trdconst.OPENORDER, listOpenOrder.OpenOrders}
+		trdListOpenOrder := trading.OpenOrders{Type:trdconst.OPENORDER, Payload:listOpenOrder.OpenOrders}
 		trdListOpenOrderJson, err := json.Marshal(trdListOpenOrder)
 		if err!=nil{
 			log.Error("error when marshal listOpenOrder", err)
@@ -323,7 +329,7 @@ func ListenOrderHistory(publisher string, topic string, zmqKey string, clients *
 			log.Error("error when unmarshal listOrderHistory", err)
 		}
 
-		trdListOrderHistory := trading.ListOrderHistory{trdconst.ORDERHISTORY, SIZE,listOrderHistory.OrderHistories}
+		trdListOrderHistory := trading.OrderHistories{Type:trdconst.ORDERHISTORY, Size:listOrderHistory.Size, Payload:listOrderHistory.OrderHistories}
 		trdListOrderHistoryJson, err := json.Marshal(trdListOrderHistory)
 		if err!=nil{
 			log.Error("error when marshal listOrderHistory", err)

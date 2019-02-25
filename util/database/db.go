@@ -15,6 +15,8 @@ func ConnectDbPostgres() {
 	host := viper.GetString("db.host")
 	port := viper.GetString("db.port")
 
+
+
 	db, err := dbx.MustOpen("postgres", "postgres://"+username+":"+password+"@"+host+":"+port+"/"+name+"?sslmode=disable")
 
 	if (err != nil){
