@@ -2,7 +2,6 @@ package engine
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/spf13/viper"
 	"websocket-server/const/trd"
@@ -69,7 +68,7 @@ func loadTradingChart(rate daos.Rate, unitOfTime string, quantity int64) sarama.
 		}
 
 		daos.SetChartList(rate.StringDash(), unitOfTime, chartList)
-		fmt.Println(daos.TRDChart)
+		//fmt.Println(daos.TRDChart)
 	} else {
 		consumer = kafka.CreateConsumerPartition(client, kafkaTopic, 0, 0)
 	}
@@ -85,7 +84,7 @@ func maintainTradingChart(rate daos.Rate, unitOfTime string, quantity int64, con
 		if unitOfTime == "1M" {
 			daos.CalculateNextChart(rate.StringDash(), chart)
 		}
-		fmt.Println(daos.TRDChart)
+		//fmt.Println(daos.TRDChart)
 
 		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.Chart{daos.ChartFromJSON(msg.Value)}}
 		tradingChartJson, _ := json.Marshal(tradingChart)
