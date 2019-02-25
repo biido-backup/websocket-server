@@ -15,6 +15,10 @@ func InitRateTradingChart(rate string){
 	TRDChart.chartListMap[rate] = make(map[string][]Chart)
 }
 
+func InitUnitOfTimeTradingChart(rate, unitOfTime string) {
+	TRDChart.chartListMap[rate][unitOfTime] = make([]Chart, 0, 1)
+}
+
 func SetChartList(rate, unitOfTime string, chartList []Chart) {
 	TRDChart.chartListMap[rate][unitOfTime] = chartList
 }
