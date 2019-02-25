@@ -1,3 +1,10 @@
+db:
+  host: 10.10.10.103
+  port: 5432
+  name: apidev
+  username: appdev
+  password: FdN94Ceb9DQH3hE9
+
 kafka:
   webapp:
     brokers: [127.0.0.1:9092]

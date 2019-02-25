@@ -6,9 +6,11 @@ import (
 	"github.com/spf13/viper"
 	"sync"
 	"time"
+	"websocket-server/cache"
 	"websocket-server/daos"
 	"websocket-server/engine"
 	"websocket-server/util/config"
+	"websocket-server/util/database"
 	"websocket-server/util/logger"
 	"websocket-server/util/redis"
 	"websocket-server/util/websocket"
@@ -17,7 +19,7 @@ import (
 
 var log *logger.CustomLog
 
-var clients *daos.Clients
+//var clients *daos.Clients
 var mutex *sync.Mutex
 
 func init(){
@@ -25,15 +27,18 @@ func init(){
 	log = logger.CreateLog("main")
 	fmt.Println("Logging Level : "+log.Level)
 	redis.ConnectRedis()
+	database.ConnectDbPostgres()
+	cache.InitCache()
 }
 
 func main(){
 
+	//var clients daos.Clients
+	//clients = daos.CreateClients()
 
-	var clients daos.Clients
-	clients = daos.CreateClients()
+	daos.CreateClients()
 
-	log.Println(clients)
+	log.Println(daos.MyClients)
 
 	rateList := viper.GetString("redis.trading.key")
 
@@ -42,18 +47,25 @@ func main(){
 	json.Unmarshal(tradingRateJson, &tradingRateList)
 
 	for _, tradingRate := range(tradingRateList){
+		daos.MyClients.SetTopic(tradingRate.StringDash())
+		cache.FillCacheByRate(tradingRate)
+	}
+
+	for _, tradingRate := range(tradingRateList){
 		log.Println(tradingRate)
-		clients.SetTopic(tradingRate.StringDash())
-		zeromq.Listen(tradingRate.StringDash(), &clients)
+		daos.MyClients.SetTopic(tradingRate.StringDash())
+		cache.FillCacheByRate(tradingRate)
+		zeromq.Listen(tradingRate.StringDash())
 		time.Sleep(time.Millisecond)
 	}
-	engine.ProcessTradingChart(tradingRateList)
 
-	err := websocket.ServeSocket(&clients)
+	go engine.ProcessTradingChart(tradingRateList)
+
+	err := websocket.ServeSocket()
 	if err != nil {
-		log.Error(err)
 		log.Fatal(err)
 	}
+
 
 }
 

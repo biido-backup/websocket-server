@@ -32,3 +32,9 @@ func (listOrderHistory ListOrderHistory) JsonListOrderHistory() (string, error) 
 
 	return string(listOrderHistoryJson), nil
 }
+
+type OrderHistories struct {
+	Type 					string					`json:"type"`
+	Size					int64					`json:"size"`
+	Payload					[]OrderHistory			`json:"payload"`
+}

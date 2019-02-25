@@ -5,23 +5,27 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"net/http"
+	"websocket-server/cache"
+	"websocket-server/const/trd"
 	"websocket-server/daos"
+	"websocket-server/daos/trading"
+	"websocket-server/service"
 	"websocket-server/util/logger"
 )
 
 var log = logger.CreateLog("websocket")
 
-var clients *daos.Clients
+//var clients = &daos.MyClients
 
-func ServeSocket(cls *daos.Clients) error{
+//func ServeSocket(cls *daos.Clients) error{
+func ServeSocket() error{
 
-	clients = cls
+	//clients = cls
+	//clients = &daos.MyClients
 
 	port := viper.GetString("sockjs.port")
 	path := viper.GetString("sockjs.path")
 
-	log.Debug(port)
-	log.Debug(path)
 
 	handler := sockjs.NewHandler(path, sockjs.DefaultOptions, SockjsHandler)
 	return http.ListenAndServe(":"+port, handler)
@@ -39,17 +43,19 @@ func SockjsHandler(session sockjs.Session) {
 	for {
 		if msg, err := session.Recv(); err == nil {
 
-			//log.Println(msg)
+			log.Debug(msg)
 
 			var subscriber daos.Subscriber
 			err := json.Unmarshal([]byte(msg), &subscriber)
-
-			//log.Println(subscriber)
 
 			if err != nil {
 				log.Error("Failed to deserialize message", err)
 				continue
 			}
+
+			rate := daos.GetRateFromStringDash(subscriber.Topic)
+
+			log.Debug(subscriber)
 
 			unsubscribeClientToAllTopic(session.ID())
 			subscribeClientToTopic(subscriber, session)
@@ -57,9 +63,42 @@ func SockjsHandler(session sockjs.Session) {
 			str := string("subscribe to : "+subscriber.Topic)
 			session.Send(str)
 
-			//tradingChart := trading.CreateTradingChart(subscriber)
-			//tradingChartJson, _ := json.Marshal(tradingChart)
-			//fmt.Println(string(tradingChartJson))
+			//Candle Stick
+			tradingChart := trading.CreateTradingChart(subscriber)
+			tradingChartJson, _ := json.Marshal(tradingChart)
+			session.Send(string(tradingChartJson))
+
+			//Orderbook
+			orderBook := cache.GetCacheByTopicAndType(subscriber.Topic, trdconst.ORDERBOOK).(trading.Orderbook)
+			orderBookJson, _ := json.Marshal(orderBook)
+			session.Send(string(orderBookJson))
+
+			//TradingHistory
+			tradingHistory := cache.GetCacheByTopicAndType(subscriber.Topic, trdconst.TRADINGHISTORY).(trading.TradingListHistory)
+			tradingHistoryJson, _ := json.Marshal(tradingHistory)
+			session.Send(string(tradingHistoryJson))
+
+			//Last24H
+			last24h := cache.GetCacheByTopicAndType(subscriber.Topic, trdconst.LAST24H).(trading.TradingLast24h)
+			last24hJson, _ := json.Marshal(last24h)
+			session.Send(string(last24hJson))
+
+			//OrderHistory
+			var orderHistories trading.OrderHistories
+			err = service.GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(&orderHistories, subscriber.Username, rate.StringSlah(), 0, 10)
+			if err != nil {
+				log.Println(err)
+			}
+			orderHistories.Type = trdconst.ORDERHISTORY
+			orderHistoriesJson, _ := json.Marshal(orderHistories)
+			session.Send(string(orderHistoriesJson))
+
+			//OpenOrder
+			var openOrders trading.OpenOrders
+			err = service.GetOpenOrdersByUsernameAndRate(&openOrders, subscriber.Username, rate.StringSlah())
+			if err != nil {
+				log.Error(err)
+			}
 
 			continue
 		}
@@ -76,8 +115,8 @@ func SockjsHandler(session sockjs.Session) {
 }
 
 func unsubscribeClientToAllTopic(sessionID string){
-	for topic, _ := range(clients.ClientSessions) {
-		clients.RemoveSubscriber(topic, sessionID)
+	for topic, _ := range(daos.MyClients.ClientSessions) {
+		daos.MyClients.RemoveSubscriber(topic, sessionID)
 	}
 }
 
@@ -85,7 +124,7 @@ func subscribeClientToTopic(subscriber daos.Subscriber, session sockjs.Session){
 	log.Debug("subscribe : ")
 	log.Debug(subscriber)
 
-	clients.AddSubscriber(subscriber, session)
+	daos.MyClients.AddSubscriber(subscriber, session)
 
 	//log.Println(clients.Clients)
 	//log.Println(clients.ClientSessions)
@@ -95,9 +134,8 @@ func subscribeClientToTopic(subscriber daos.Subscriber, session sockjs.Session){
 
 func BroadcastMessage(topic string, str string){
 	//start := time.Now()
-	log.Debug("Broadcast message with topic : "+topic)
 	var c map[string] map[string] sockjs.Session
-	c = clients.GetAllClientsByTopic(topic)
+	c = daos.MyClients.GetAllClientsByTopic(topic)
 	for _, username := range(c) {
 		for _, session := range(username){
 			session.Send(str)
@@ -111,7 +149,7 @@ func BroadcastMessage(topic string, str string){
 
 func BroadcastMessageWithInterval(topic string, interval string, str string){
 	var sessions map[string] sockjs.Session
-	sessions = clients.GetListSessionByTopicAndInterval(topic, interval)
+	sessions = daos.MyClients.GetListSessionByTopicAndInterval(topic, interval)
 	for _, session := range(sessions) {
 		session.Send(str)
 	}
@@ -120,7 +158,7 @@ func BroadcastMessageWithInterval(topic string, interval string, str string){
 func SendMessageToUser(topic string, username string, str string){
 
 	var sessions map[string] sockjs.Session
-	sessions = clients.GetListSessionByTopicAndUsername(topic, username)
+	sessions = daos.MyClients.GetListSessionByTopicAndUsername(topic, username)
 	for _, session := range(sessions) {
 		session.Send(str)
 	}
