@@ -59,8 +59,7 @@ func SetNextChart(rate, unitOfTime string, lastTime int64) {
 }
 
 func CalculateNextChart(rate string, chart Chart) {
-	unitOfTimeList := []string{"5M"}
-	//unitOfTimeList := []string{"5M", "15M", "30M", "1H", "6H", "12H", "1D", "1W", "1MO"}
+	unitOfTimeList := []string{"5M", "15M", "30M", "1H", "6H", "12H", "1D", "1W", "1MO"}
 	for _, unitOfTime := range unitOfTimeList {
 		nextTime := TRDChart.nextChartMap[rate][unitOfTime][0].Time
 
