@@ -77,7 +77,7 @@ func ListenTest(publisher string, zmqKey string){
 		//msg.Frames[1] --> message
 		orderbook = trading.OrderBookFromJSONZeroMQ(msg.Frames[1])
 
-		log.Println(orderbook)
+		log.Debug(orderbook)
 
 	}
 }
@@ -122,7 +122,7 @@ func ListenOrderBook(publisher string, topic string, zmqKey string, clients *dao
 			log.Error("error when unmarshal orderbook", err)
 		}
 
-		log.Println(orderbook)
+		log.Debug(orderbook)
 		cache.SetCacheByTopicAndType(topic, trdconst.ORDERBOOK, trdOrderbook)
 
 		websocket.BroadcastMessage(topic, string(trdOrderbookJson))
@@ -176,7 +176,7 @@ func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.
 			log.Error("error when marshal last24h", err)
 		}
 
-		log.Println(trdLast24h)
+		log.Debug(trdLast24h)
 		cache.SetCacheByTopicAndType(topic, trdconst.LAST24H, trdLast24h)
 
 		websocket.BroadcastMessage(topic, string(trdLast24hJson))
@@ -231,7 +231,7 @@ func ListenTradingHistory(publisher string, topic string, zmqKey string, clients
 			log.Error("error when marshal listHistory", err)
 		}
 
-		log.Println(trdListHistory)
+		log.Debug(trdListHistory)
 		cache.SetCacheByTopicAndType(topic, trdconst.TRADINGHISTORY, trdListHistory)
 
 		websocket.BroadcastMessage(topic, string(trdListHistoryJson))
@@ -285,7 +285,7 @@ func ListenOpenOrder(publisher string, topic string, zmqKey string, clients *dao
 
 		username := listOpenOrder.Username
 		//log.Println("username : ",username)
-		log.Println(trdListOpenOrder)
+		log.Debug(trdListOpenOrder)
 		websocket.SendMessageToUser(topic, username, string(trdListOpenOrderJson))
 
 
@@ -339,7 +339,7 @@ func ListenOrderHistory(publisher string, topic string, zmqKey string, clients *
 
 		username := listOrderHistory.Username
 		//log.Println("username : ",username)
-		log.Println(trdListOrderHistory)
+		log.Debug(trdListOrderHistory)
 		websocket.SendMessageToUser(topic, username, string(trdListOrderHistoryJson))
 
 	}

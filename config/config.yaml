@@ -34,7 +34,7 @@ zeromq:
 
 sockjs:
   port: 18000
-  path: /echo
+  path: /ws
 
 tradingchart:
   quantity: 10
