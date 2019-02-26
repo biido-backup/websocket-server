@@ -226,7 +226,7 @@ func GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(orderHistories *trading
 	iq := "" +
 		"(SELECT h.id AS id, " +
 		"h.rate AS rate, " +
-		"'ASK' AS trading_type, " +
+		"'ASK' AS type, " +
 		"h.price AS price, " +
 		"h.amount AS amount, " +
 		"a.admin_fee AS admin_fee, " +
@@ -237,7 +237,7 @@ func GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(orderHistories *trading
 		"UNION" +
 		"(SELECT h.id AS id, " +
 		"h.rate AS rate, " +
-		"'BID' AS trading_type, " +
+		"'BID' AS type, " +
 		"h.price AS price, " +
 		"h.amount AS amount, " +
 		"b.admin_fee AS admin_fee, " +
@@ -285,7 +285,7 @@ func GetListOrderHistoryByMemberIdAndRateAndOffsetAndLimit(listOrderHistory *tra
 	iq := "" +
 		"(SELECT h.id AS id, " +
 		"h.rate AS rate, " +
-		"'ASK' AS trading_type, " +
+		"'ASK' AS type, " +
 		"h.price AS price, " +
 		"h.amount AS amount, " +
 		"a.admin_fee AS admin_fee, " +
@@ -296,7 +296,7 @@ func GetListOrderHistoryByMemberIdAndRateAndOffsetAndLimit(listOrderHistory *tra
 		"UNION" +
 		"(SELECT h.id AS id, " +
 		"h.rate AS rate, " +
-		"'BID' AS trading_type, " +
+		"'BID' AS type, " +
 		"h.price AS price, " +
 		"h.amount AS amount, " +
 		"b.admin_fee AS admin_fee, " +
