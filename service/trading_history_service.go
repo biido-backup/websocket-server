@@ -2,14 +2,18 @@ package service
 
 import (
 	"database/sql"
+	"encoding/json"
 	"github.com/go-ozzo/ozzo-dbx"
 	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
+	"github.com/spf13/viper"
 	"strconv"
 	"time"
 	"websocket-server/const/formtter"
+	"websocket-server/daos"
 	"websocket-server/daos/trading"
 	"websocket-server/util/database"
+	"websocket-server/util/redis"
 )
 
 type TradingHistory struct {
@@ -170,54 +174,33 @@ func GetOpenOrdersByUsernameAndRate(openOrders *trading.OpenOrders, username str
 		return err
 	}
 
-	openOrders.Payload = listOpenOrder
+	precisionPrefix := viper.GetString("redis.precision.key.prefix")
 
-	return nil
-}
+	for index, _ := range(listOpenOrder) {
+		rate := daos.GetRateFromStringSlash(listOpenOrder[index].Rate)
 
-func GetListOpenOrderByMemberIdAndRate(listOpenOrder *trading.ListOpenOrder, memberId uint64, rate string) error{
-	iq := "" +
-		"(SELECT ta.id AS id, " +
-				"'ASK' AS type, " +
-				"ta.rate AS rate, " +
-				"ta.price AS price, " +
-				"ta.amount AS amount, " +
-				"ta.filled_amount AS filled_amount, " +
-				"ta.created_at AS created_at, " +
-				"ta.admin_fee AS admin_fee " +
-		"FROM trading_ask ta " +
-		"WHERE ta.member_id = "+strconv.FormatUint(memberId, 10)+" " +
-			"AND UPPER(ta.rate) = UPPER('"+rate+"') " +
-			"AND ta.open = true " +
-			"AND ta.type_id = 1) " +
-		"UNION " +
-		"(SELECT " +
-				"tb.id AS id, " +
-				"'BID' AS type, " +
-				"tb.rate AS rate, " +
-				"tb.price AS price, " +
-				"tb.amount AS amount, " +
-				"tb.filled_amount AS filled_amount, " +
-				"tb.created_at AS created_at, " +
-				"tb.admin_fee AS admin_fee " +
-		"FROM trading_bid tb " +
-		"WHERE tb.member_id = "+strconv.FormatUint(memberId, 10)+" " +
-			"AND UPPER(tb.rate) = UPPER('"+rate+"') " +
-			"AND tb.open = true " +
-			"AND tb.type_id = 1) " +
-		"ORDER BY created_at DESC "
+		mainPrecisionJson := redis.GetValueByKey(precisionPrefix+rate.MainCurrency)
+		var mainPrecision daos.WalletTypeMaxPrecision
+		json.Unmarshal(mainPrecisionJson, &mainPrecision)
+		listOpenOrder[index].MainPrecision = mainPrecision.Precision
 
-	q := database.Db.NewQuery(iq)
+		pivotPrecisionJson := redis.GetValueByKey(precisionPrefix+rate.PivotCurrency)
+		var pivotPrecision daos.WalletTypeMaxPrecision
+		json.Unmarshal(pivotPrecisionJson, &pivotPrecision)
+		listOpenOrder[index].PivotPrecision = pivotPrecision.Precision
 
-	var openOrders []trading.OpenOrder
+		price, _ := decimal.NewFromString(listOpenOrder[index].Price)
+		amount, _ := decimal.NewFromString(listOpenOrder[index].Amount)
+		filledAmount, _ := decimal.NewFromString(listOpenOrder[index].FilledAmount)
 
-	err := q.All(&openOrders)
-	if err != nil {
-		log.Error(err)
-		return err
+		remainderAmount := amount.Sub(filledAmount)
+		totalRemainderAmount := remainderAmount.Mul(price)
+
+		listOpenOrder[index].RemainderAmount = remainderAmount.String()
+		listOpenOrder[index].TotalRemainderAmount = totalRemainderAmount.String()
 	}
 
-	listOpenOrder.OpenOrders = openOrders
+	openOrders.Payload = listOpenOrder
 
 	return nil
 }
@@ -266,6 +249,32 @@ func GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(orderHistories *trading
 		return err
 	}
 
+	precisionPrefix := viper.GetString("redis.precision.key.prefix")
+
+	for index, _ := range(listOrderHistory) {
+		rate := daos.GetRateFromStringSlash(listOrderHistory[index].Rate)
+
+
+
+		mainPrecisionJson := redis.GetValueByKey(precisionPrefix+rate.MainCurrency)
+		var mainPrecision daos.WalletTypeMaxPrecision
+		json.Unmarshal(mainPrecisionJson, &mainPrecision)
+		listOrderHistory[index].MainPrecision = mainPrecision.Precision
+
+
+		pivotPrecisionJson := redis.GetValueByKey(precisionPrefix+rate.PivotCurrency)
+		var pivotPrecision daos.WalletTypeMaxPrecision
+		json.Unmarshal(pivotPrecisionJson, &pivotPrecision)
+		listOrderHistory[index].PivotPrecision = pivotPrecision.Precision
+
+
+		amount, _ := decimal.NewFromString(listOrderHistory[index].Amount)
+		price, _ := decimal.NewFromString(listOrderHistory[index].Price)
+		totalAmount := amount.Mul(price)
+		listOrderHistory[index].TotalAmount = totalAmount.String()
+
+	}
+
 	qCount := database.Db.NewQuery("SELECT COUNT(id) as size FROM  ("+iq+") as order_history")
 
 	qCount.One(orderHistories)
@@ -281,60 +290,3 @@ func GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(orderHistories *trading
 }
 
 
-func GetListOrderHistoryByMemberIdAndRateAndOffsetAndLimit(listOrderHistory *trading.ListOrderHistory, memberId uint64, rate string, offset uint64, limit int) error {
-	iq := "" +
-		"(SELECT h.id AS id, " +
-		"h.rate AS rate, " +
-		"'ASK' AS type, " +
-		"h.price AS price, " +
-		"h.amount AS amount, " +
-		"a.admin_fee AS admin_fee, " +
-		"h.created_at AS created_at " +
-		"FROM trading_history  h " +
-		"LEFT JOIN trading_ask a ON a.id = h.ask_id " +
-		"WHERE a.member_id = "+strconv.FormatUint(memberId, 10)+" AND UPPER(a.rate) = UPPER('"+rate+"'))" +
-		"UNION" +
-		"(SELECT h.id AS id, " +
-		"h.rate AS rate, " +
-		"'BID' AS type, " +
-		"h.price AS price, " +
-		"h.amount AS amount, " +
-		"b.admin_fee AS admin_fee, " +
-		"h.created_at AS created_at " +
-		"FROM trading_history h " +
-		"LEFT JOIN trading_bid b ON b.id = h.bid_id " +
-		"WHERE b.member_id = "+strconv.FormatUint(memberId, 10)+" AND UPPER(b.rate) = UPPER('"+rate+"'))"
-
-
-	var orderHistories []trading.OrderHistory
-
-	q := database.Db.NewQuery("" +
-		"SELECT outer_query.* " +
-		"FROM (" +
-			"SELECT " +
-			"row_number() over() rn, " +
-			"inner_query.* " +
-			"FROM ("+iq+" ORDER BY created_at DESC) inner_query) " +
-		"outer_query " +
-		"WHERE outer_query.rn >= "+strconv.FormatUint(offset, 10)+" + 1 " +
-		"AND outer_query.rn <= "+strconv.FormatUint(offset, 10)+" + "+strconv.Itoa(limit))
-
-	err := q.All(&orderHistories)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	qCount := database.Db.NewQuery("SELECT COUNT(id) as size FROM  ("+iq+") as order_history")
-
-	qCount.One(listOrderHistory)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	listOrderHistory.OrderHistories = orderHistories
-
-	return nil
-
-}

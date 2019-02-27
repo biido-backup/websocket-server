@@ -20,6 +20,9 @@ redis:
   port: 6379
   trading:
     key: TRADING-RATE
+  precision:
+    key:
+      prefix: "PRECISION:"
 
 zeromq:
   publisher:
