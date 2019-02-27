@@ -122,7 +122,7 @@ func ListenOrderBook(publisher string, topic string, zmqKey string, clients *dao
 			log.Error("error when unmarshal orderbook", err)
 		}
 
-		log.Debug(orderbook)
+		//log.Debug(orderbook)
 		cache.SetCacheByTopicAndType(topic, trdconst.ORDERBOOK, trdOrderbook)
 
 		websocket.BroadcastMessage(topic, string(trdOrderbookJson))
