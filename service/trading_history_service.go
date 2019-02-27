@@ -129,7 +129,7 @@ func GetLast24HTransactionByRate(last24h *trading.Last24h, rate string) error {
 func GetOpenOrdersByUsernameAndRate(openOrders *trading.OpenOrders, username string, rate string) error{
 	iq := "" +
 		"(SELECT ta.id AS id, " +
-		"'ASK' AS trading_type, " +
+		"'ASK' AS type, " +
 		"ta.rate AS rate, " +
 		"ta.price AS price, " +
 		"ta.amount AS amount, " +
@@ -144,7 +144,7 @@ func GetOpenOrdersByUsernameAndRate(openOrders *trading.OpenOrders, username str
 		"UNION " +
 		"(SELECT " +
 		"tb.id AS id, " +
-		"'BID' AS trading_type, " +
+		"'BID' AS type, " +
 		"tb.rate AS rate, " +
 		"tb.price AS price, " +
 		"tb.amount AS amount, " +
@@ -178,7 +178,7 @@ func GetOpenOrdersByUsernameAndRate(openOrders *trading.OpenOrders, username str
 func GetListOpenOrderByMemberIdAndRate(listOpenOrder *trading.ListOpenOrder, memberId uint64, rate string) error{
 	iq := "" +
 		"(SELECT ta.id AS id, " +
-				"'ASK' AS trading_type, " +
+				"'ASK' AS type, " +
 				"ta.rate AS rate, " +
 				"ta.price AS price, " +
 				"ta.amount AS amount, " +
@@ -193,7 +193,7 @@ func GetListOpenOrderByMemberIdAndRate(listOpenOrder *trading.ListOpenOrder, mem
 		"UNION " +
 		"(SELECT " +
 				"tb.id AS id, " +
-				"'BID' AS trading_type, " +
+				"'BID' AS type, " +
 				"tb.rate AS rate, " +
 				"tb.price AS price, " +
 				"tb.amount AS amount, " +
