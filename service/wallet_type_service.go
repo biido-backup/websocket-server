@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"github.com/go-ozzo/ozzo-dbx"
 	_ "github.com/lib/pq"
-	"github.com/sirupsen/logrus"
 	"websocket-server/daos"
 	"websocket-server/util/database"
+	"websocket-server/util/logger"
 )
 
-var log = logrus.New()
+var log = logger.CreateLog("service")
 
 func GetAllWalletTypeCode() ([]sql.NullString, error) {
 	var walletType []sql.NullString

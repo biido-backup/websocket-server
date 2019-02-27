@@ -180,14 +180,14 @@ func GetOpenOrdersByUsernameAndRate(openOrders *trading.OpenOrders, username str
 		rate := daos.GetRateFromStringSlash(listOpenOrder[index].Rate)
 
 		mainPrecisionJson := redis.GetValueByKey(precisionPrefix+rate.MainCurrency)
-		var mainPrecision string
+		var mainPrecision daos.WalletTypeMaxPrecision
 		json.Unmarshal(mainPrecisionJson, &mainPrecision)
-		listOpenOrder[index].MainPrecision = mainPrecision
+		listOpenOrder[index].MainPrecision = mainPrecision.Precision
 
 		pivotPrecisionJson := redis.GetValueByKey(precisionPrefix+rate.PivotCurrency)
-		var pivotPrecision string
+		var pivotPrecision daos.WalletTypeMaxPrecision
 		json.Unmarshal(pivotPrecisionJson, &pivotPrecision)
-		listOpenOrder[index].PivotPrecision = pivotPrecision
+		listOpenOrder[index].PivotPrecision = pivotPrecision.Precision
 
 		price, _ := decimal.NewFromString(listOpenOrder[index].Price)
 		amount, _ := decimal.NewFromString(listOpenOrder[index].Amount)
@@ -249,32 +249,31 @@ func GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(orderHistories *trading
 		return err
 	}
 
-	log.Debug("LOG HISTORY BEFORE", orderHistories)
-
 	precisionPrefix := viper.GetString("redis.precision.key.prefix")
 
 	for index, _ := range(listOrderHistory) {
 		rate := daos.GetRateFromStringSlash(listOrderHistory[index].Rate)
 
-		mainPrecisionJson := redis.GetValueByKey(precisionPrefix+rate.MainCurrency)
-		var mainPrecision string
-		json.Unmarshal(mainPrecisionJson, &mainPrecision)
-		listOrderHistory[index].MainPrecision = mainPrecision
 
-		log.Debug(mainPrecision)
+
+		mainPrecisionJson := redis.GetValueByKey(precisionPrefix+rate.MainCurrency)
+		var mainPrecision daos.WalletTypeMaxPrecision
+		json.Unmarshal(mainPrecisionJson, &mainPrecision)
+		listOrderHistory[index].MainPrecision = mainPrecision.Precision
+
 
 		pivotPrecisionJson := redis.GetValueByKey(precisionPrefix+rate.PivotCurrency)
-		var pivotPrecision string
+		var pivotPrecision daos.WalletTypeMaxPrecision
 		json.Unmarshal(pivotPrecisionJson, &pivotPrecision)
-		listOrderHistory[index].PivotPrecision = pivotPrecision
+		listOrderHistory[index].PivotPrecision = pivotPrecision.Precision
+
 
 		amount, _ := decimal.NewFromString(listOrderHistory[index].Amount)
 		price, _ := decimal.NewFromString(listOrderHistory[index].Price)
 		totalAmount := amount.Mul(price)
 		listOrderHistory[index].TotalAmount = totalAmount.String()
-	}
 
-	log.Debug("LOG HISTORY AFTER", orderHistories)
+	}
 
 	qCount := database.Db.NewQuery("SELECT COUNT(id) as size FROM  ("+iq+") as order_history")
 
