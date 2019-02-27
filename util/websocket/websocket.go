@@ -84,8 +84,10 @@ func SockjsHandler(session sockjs.Session) {
 			session.Send(string(last24hJson))
 
 			//OrderHistory
+			const offset uint64 = 0
+			const limit int = 5
 			var orderHistories trading.OrderHistories
-			err = service.GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(&orderHistories, subscriber.Username, rate.StringSlah(), 0, 10)
+			err = service.GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(&orderHistories, subscriber.Username, rate.StringSlah(), offset, limit)
 			if err != nil {
 				log.Println(err)
 			}
