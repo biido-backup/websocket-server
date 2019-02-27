@@ -3,8 +3,8 @@ package trading
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
-	"time"
 )
 
 type History struct {
@@ -12,7 +12,7 @@ type History struct {
 	Amount       		decimal.Decimal			`json:"amount"`
 	Price        		decimal.Decimal			`json:"price"`
 	Type				sql.NullString			`json:"type"`
-	Time				time.Time				`json:"time"`
+	Time				pq.NullTime				`json:"time"`
 }
 
 type ListHistory struct {
