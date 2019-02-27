@@ -2,7 +2,7 @@ package trading
 
 import (
 	"encoding/json"
-	"time"
+	"github.com/lib/pq"
 )
 
 type OpenOrder struct {
@@ -17,7 +17,7 @@ type OpenOrder struct {
 	AdminFee				string					`json:"admin_fee"`
 	MainPrecision			string					`json:"main_precision"`
 	PivotPrecision			string					`json:"pivot_precision"`
-	CreatedAt				time.Time				`json:"created_at"`
+	CreatedAt				pq.NullTime				`json:"created_at"`
 }
 
 type ListOpenOrder struct {
