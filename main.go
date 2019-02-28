@@ -23,6 +23,7 @@ var log *logger.CustomLog
 var mutex *sync.Mutex
 
 func init(){
+	_, _ = time.LoadLocation("Asia/Jakarta")
 	config.LoadConfig()
 	log = logger.CreateLog("main")
 	fmt.Println("Logging Level : "+log.Level)
