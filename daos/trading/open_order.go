@@ -18,6 +18,7 @@ type OpenOrder struct {
 	MainPrecision			string					`json:"main_precision"`
 	PivotPrecision			string					`json:"pivot_precision"`
 	CreatedAt				pq.NullTime				`json:"created_at"`
+	CreatedAtUnix			int64					`json:"created_at_unix"`
 }
 
 type ListOpenOrder struct {
