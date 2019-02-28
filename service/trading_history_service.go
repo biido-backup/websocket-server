@@ -189,7 +189,7 @@ func GetOpenOrdersByUsernameAndRate(openOrders *trading.OpenOrders, username str
 		json.Unmarshal(pivotPrecisionJson, &pivotPrecision)
 		listOpenOrder[index].PivotPrecision = pivotPrecision.Precision
 
-		listOpenOrder[index].CreatedAtUnix = listOpenOrder[index].CreatedAt.Time.Unix()
+		listOpenOrder[index].CreatedAtUnix = listOpenOrder[index].CreatedAt.Time.Unix() * 1000
 
 		price, _ := decimal.NewFromString(listOpenOrder[index].Price)
 		amount, _ := decimal.NewFromString(listOpenOrder[index].Amount)
@@ -269,7 +269,7 @@ func GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(orderHistories *trading
 		json.Unmarshal(pivotPrecisionJson, &pivotPrecision)
 		listOrderHistory[index].PivotPrecision = pivotPrecision.Precision
 
-		listOrderHistory[index].CreatedAtUnix = listOrderHistory[index].CreatedAt.Time.Unix()
+		listOrderHistory[index].CreatedAtUnix = listOrderHistory[index].CreatedAt.Time.Unix() * 1000
 
 		amount, _ := decimal.NewFromString(listOrderHistory[index].Amount)
 		price, _ := decimal.NewFromString(listOrderHistory[index].Price)
