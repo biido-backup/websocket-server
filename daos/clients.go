@@ -42,7 +42,7 @@ var log = logger.CreateLog("daos")
 //	MyClients.mu.Unlock()
 //}
 //
-//func (MyClients Clients) AddSubscriber(subscriber Subscriber,session sockjs.Session){
+//func (MyClients Clients) AddSubscriber(subscriber WebsocketRequest,session sockjs.Session){
 //	//CLients
 //	MyClients.mu.Lock()
 //	clientSession := MyClients.GetListSessionByTopicAndUsername(subscriber.Topic, subscriber.Username)
@@ -195,37 +195,37 @@ func (clients Clients) SetTopic(topic string) {
 	clients.muIntervalSessions.Unlock()
 }
 
-func (clients Clients) AddSubscriber(subscriber Subscriber,session sockjs.Session){
+func (clients Clients) AddSubscriber(request WebsocketRequest,session sockjs.Session){
 	//CLients
-	clientSession := clients.GetListSessionByTopicAndUsername(subscriber.Topic, subscriber.Username)
+	clientSession := clients.GetListSessionByTopicAndUsername(request.Topic, request.Username)
 	if clientSession == nil{
 		clients.muClients.Lock()
-		clients.Clients[subscriber.Topic][subscriber.Username] = make(map[string] sockjs.Session)
+		clients.Clients[request.Topic][request.Username] = make(map[string] sockjs.Session)
 		clients.muClients.Unlock()
 	}
 	clients.muClients.Lock()
-	clients.Clients[subscriber.Topic][subscriber.Username][session.ID()] = session
+	clients.Clients[request.Topic][request.Username][session.ID()] = session
 	clients.muClients.Unlock()
 
 	//ClientSession
 	clients.muClientsSessions.Lock()
-	clients.ClientSessions[subscriber.Topic][session.ID()] = subscriber.Username
+	clients.ClientSessions[request.Topic][session.ID()] = request.Username
 	clients.muClientsSessions.Unlock()
 
 	//Interval
-	intervalSession := clients.GetListSessionByTopicAndInterval(subscriber.Topic, subscriber.Interval)
+	intervalSession := clients.GetListSessionByTopicAndInterval(request.Topic, request.Interval)
 	if intervalSession == nil{
 		clients.muIntervals.Lock()
-		clients.Intervals[subscriber.Topic][subscriber.Interval] = make(map[string] sockjs.Session)
+		clients.Intervals[request.Topic][request.Interval] = make(map[string] sockjs.Session)
 		clients.muIntervals.Unlock()
 	}
 	clients.muIntervals.Lock()
-	clients.Intervals[subscriber.Topic][subscriber.Interval][session.ID()] = session
+	clients.Intervals[request.Topic][request.Interval][session.ID()] = session
 	clients.muIntervals.Unlock()
 
 	//Interval Session
 	clients.muIntervalSessions.Lock()
-	clients.IntervalSessions[subscriber.Topic][session.ID()] = subscriber.Interval
+	clients.IntervalSessions[request.Topic][session.ID()] = request.Interval
 	clients.muIntervalSessions.Unlock()
 }
 
@@ -304,5 +304,12 @@ func (clients Clients) GetListSessionByTopicAndInterval(topic string, interval s
 	sessions = clients.Intervals[topic][interval]
 	clients.muIntervals.RUnlock()
 	return sessions
+}
+
+func (clients Clients) GetSessionByTopicAndUsernameAndSessionId(topic string, username string, sessionId string) (sockjs.Session, bool){
+	clients.muClients.RLock()
+	session, exist := clients.Clients[topic][username][sessionId]
+	clients.muClients.RUnlock()
+	return session, exist
 }
 

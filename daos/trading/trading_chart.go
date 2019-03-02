@@ -10,7 +10,7 @@ type TradingChart struct {
 	Payload		[]daos.Chart		`json:"payload"`
 }
 
-func CreateTradingChart(subscriber daos.Subscriber) TradingChart {
+func CreateTradingChart(subscriber daos.WebsocketRequest) TradingChart {
 	unitOfTime := ""
 	if subscriber.Interval == "1m" {
 		unitOfTime = "1M"
