@@ -45,6 +45,10 @@ func GetLastTradingHistoryBySize(listHistory *trading.ListHistory, rate string, 
 		return err
 	}
 
+	for index, _ := range(histories){
+		histories[index].Time.Scan(histories[index].Time.Time.Add(-7 * time.Hour)) //temporary
+	}
+
 	listHistory.Histories = histories
 
 	//log.Println(rate+" : hist",time.Since(start))
@@ -189,6 +193,7 @@ func GetOpenOrdersByUsernameAndRate(openOrders *trading.OpenOrders, username str
 		json.Unmarshal(pivotPrecisionJson, &pivotPrecision)
 		listOpenOrder[index].PivotPrecision = pivotPrecision.Precision
 
+		listOpenOrder[index].CreatedAt.Scan(listOpenOrder[index].CreatedAt.Time.Add(-7 * time.Hour)) //temporary, timezone problem while querying
 		listOpenOrder[index].CreatedAtUnix = listOpenOrder[index].CreatedAt.Time.Unix() * 1000
 
 		price, _ := decimal.NewFromString(listOpenOrder[index].Price)
@@ -269,6 +274,7 @@ func GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(orderHistories *trading
 		json.Unmarshal(pivotPrecisionJson, &pivotPrecision)
 		listOrderHistory[index].PivotPrecision = pivotPrecision.Precision
 
+		listOrderHistory[index].CreatedAt.Scan(listOrderHistory[index].CreatedAt.Time.Add(-7 * time.Hour)) //temporary, timezone problem while querying
 		listOrderHistory[index].CreatedAtUnix = listOrderHistory[index].CreatedAt.Time.Unix() * 1000
 
 		amount, _ := decimal.NewFromString(listOrderHistory[index].Amount)

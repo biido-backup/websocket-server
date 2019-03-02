@@ -54,8 +54,6 @@ func main(){
 
 	for _, tradingRate := range(tradingRateList){
 		log.Println(tradingRate)
-		daos.MyClients.SetTopic(tradingRate.StringDash())
-		cache.FillCacheByRate(tradingRate)
 		zeromq.Listen(tradingRate.StringDash())
 		time.Sleep(time.Millisecond)
 	}
