@@ -45,67 +45,85 @@ func SockjsHandler(session sockjs.Session) {
 
 			log.Debug(msg)
 
-			var subscriber daos.Subscriber
-			err := json.Unmarshal([]byte(msg), &subscriber)
+			var request daos.WebsocketRequest
+			err := json.Unmarshal([]byte(msg), &request)
 
 			if err != nil {
 				log.Error("Failed to deserialize message", err)
 				continue
 			}
 
-			rate := daos.GetRateFromStringDash(subscriber.Topic)
+			rate := daos.GetRateFromStringDash(request.Topic)
 
-			log.Debug(subscriber)
+			log.Debug(request)
 
-			unsubscribeClientToAllTopic(session.ID())
-			subscribeClientToTopic(subscriber, session)
+			if request.Method == "subscribe"{
+				unsubscribeClientToAllTopic(session.ID())
+				subscribeClientToTopic(request, session)
 
-			str := string("subscribe to : "+subscriber.Topic)
-			session.Send(str)
+				str := string("subscribe to : "+ request.Topic)
+				session.Send(str)
 
-			//Candle Stick
-			tradingChart := trading.CreateTradingChart(subscriber)
-			tradingChartJson, _ := json.Marshal(tradingChart)
-			session.Send(string(tradingChartJson))
+				//Candle Stick
+				tradingChart := trading.CreateTradingChart(request)
+				tradingChartJson, _ := json.Marshal(tradingChart)
+				session.Send(string(tradingChartJson))
 
-			//Orderbook
-			orderBook := cache.GetCacheByTopicAndType(subscriber.Topic, trdconst.ORDERBOOK).(trading.Orderbook)
-			orderBookJson, _ := json.Marshal(orderBook)
-			session.Send(string(orderBookJson))
+				//Orderbook
+				orderBook := cache.GetCacheByTopicAndType(request.Topic, trdconst.ORDERBOOK).(trading.Orderbook)
+				orderBookJson, _ := json.Marshal(orderBook)
+				session.Send(string(orderBookJson))
 
-			//TradingHistory
-			tradingHistory := cache.GetCacheByTopicAndType(subscriber.Topic, trdconst.TRADINGHISTORY).(trading.TradingListHistory)
-			tradingHistoryJson, _ := json.Marshal(tradingHistory)
-			session.Send(string(tradingHistoryJson))
+				//TradingHistory
+				tradingHistory := cache.GetCacheByTopicAndType(request.Topic, trdconst.TRADINGHISTORY).(trading.TradingListHistory)
+				tradingHistoryJson, _ := json.Marshal(tradingHistory)
+				session.Send(string(tradingHistoryJson))
 
-			//Last24H
-			last24h := cache.GetCacheByTopicAndType(subscriber.Topic, trdconst.LAST24H).(trading.TradingLast24h)
-			last24hJson, _ := json.Marshal(last24h)
-			session.Send(string(last24hJson))
+				//Last24H
+				last24h := cache.GetCacheByTopicAndType(request.Topic, trdconst.LAST24H).(trading.TradingLast24h)
+				last24hJson, _ := json.Marshal(last24h)
+				session.Send(string(last24hJson))
 
-			//OrderHistory
-			const offset uint64 = 0
-			const limit int = 5
-			var orderHistories trading.OrderHistories
-			err = service.GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(&orderHistories, subscriber.Username, rate.StringSlah(), offset, limit)
-			if err != nil {
-				log.Println(err)
+				//OrderHistory
+				const offset uint64 = 0
+				const limit int = 5
+				var orderHistories trading.OrderHistories
+				err = service.GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(&orderHistories, request.Username, rate.StringSlah(), offset, limit)
+				if err != nil {
+					log.Println(err)
+				}
+				orderHistories.Type = trdconst.ORDERHISTORY
+				orderHistoriesJson, _ := json.Marshal(orderHistories)
+				session.Send(string(orderHistoriesJson))
+
+				//OpenOrder
+				var openOrders trading.OpenOrders
+				err = service.GetOpenOrdersByUsernameAndRate(&openOrders, request.Username, rate.StringSlah())
+				if err != nil {
+					log.Error(err)
+				}
+				openOrders.Type = trdconst.OPENORDER
+				openOrdersJson, _ := json.Marshal(openOrders)
+				session.Send(string(openOrdersJson))
+
+				continue
+
+			} else if request.Method == "reload_openorder" {
+				//OpenOrder
+				log.Debug("Reload Open Order")
+				if checkIfSubscribed(request.Topic, request.Username, session.ID()){
+					log.Debug("Reload Open Order: MASUK")
+					var openOrders trading.OpenOrders
+					err = service.GetOpenOrdersByUsernameAndRate(&openOrders, request.Username, rate.StringSlah())
+					if err != nil {
+						log.Error(err)
+					}
+					openOrders.Type = trdconst.OPENORDER
+					openOrdersJson, _ := json.Marshal(openOrders)
+					SendMessageToUser(request.Topic, request.Username, string(openOrdersJson))
+				}
+				continue
 			}
-			orderHistories.Type = trdconst.ORDERHISTORY
-			orderHistoriesJson, _ := json.Marshal(orderHistories)
-			session.Send(string(orderHistoriesJson))
-
-			//OpenOrder
-			var openOrders trading.OpenOrders
-			err = service.GetOpenOrdersByUsernameAndRate(&openOrders, subscriber.Username, rate.StringSlah())
-			if err != nil {
-				log.Error(err)
-			}
-			openOrders.Type = trdconst.OPENORDER
-			openOrdersJson, _ := json.Marshal(openOrders)
-			session.Send(string(openOrdersJson))
-
-			continue
 		}
 		str := string("connection from server (" + session.ID() + ") : CLOSED")
 		log.Debug(str)
@@ -119,18 +137,22 @@ func SockjsHandler(session sockjs.Session) {
 	}
 }
 
+func checkIfSubscribed(topic string, username string, sessionId string) bool{
+	_, exist := daos.MyClients.GetSessionByTopicAndUsernameAndSessionId(topic, username, sessionId)
+	return exist
+}
+
 func unsubscribeClientToAllTopic(sessionID string){
 	for topic, _ := range(daos.MyClients.ClientSessions) {
 		daos.MyClients.RemoveSubscriber(topic, sessionID)
 	}
 }
 
-func subscribeClientToTopic(subscriber daos.Subscriber, session sockjs.Session){
+func subscribeClientToTopic(request daos.WebsocketRequest, session sockjs.Session){
 	log.Debug("subscribe : ")
-	log.Debug(subscriber)
+	log.Debug(request)
 
-	daos.MyClients.AddSubscriber(subscriber, session)
-
+	daos.MyClients.AddSubscriber(request, session)
 	//log.Println(clients.Clients)
 	//log.Println(clients.ClientSessions)
 	//log.Println(clients.Intervals)
@@ -145,11 +167,7 @@ func BroadcastMessage(topic string, str string){
 		for _, session := range(username){
 			session.Send(str)
 		}
-
 	}
-	//log.Println("Time : "+time.Since(start).String())
-	//log.Println(clients)
-	//log.Println(sessions)
 }
 
 func BroadcastMessageWithInterval(topic string, interval string, str string){
@@ -161,11 +179,9 @@ func BroadcastMessageWithInterval(topic string, interval string, str string){
 }
 
 func SendMessageToUser(topic string, username string, str string){
-
 	var sessions map[string] sockjs.Session
 	sessions = daos.MyClients.GetListSessionByTopicAndUsername(topic, username)
 	for _, session := range(sessions) {
 		session.Send(str)
 	}
-
 }
