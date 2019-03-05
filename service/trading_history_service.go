@@ -65,7 +65,7 @@ func GetLast24HTransactionByRate(last24h *trading.Last24h, rate string) error {
 		From("trading_history").
 		Where(dbx.And(dbx.Like("rate", rate), dbx.NewExp("created_at > '"+tLast24hStr+"'")))
 
-	//log.Println(q.Build().SQL())
+	//log.Debug(q.Build().SQL())
 
 	err := q.One(last24h)
 	if err != nil {
@@ -76,13 +76,18 @@ func GetLast24HTransactionByRate(last24h *trading.Last24h, rate string) error {
 
 	var tradingHistory []TradingHistory
 
-	q2 := database.Db.NewQuery("SELECT * FROM trading_history " +
-								"WHERE id=(SELECT min(id) FROM trading_history WHERE created_at > '"+tLast24hStr+"') " +
-								"OR id=(SELECT max(id) FROM trading_history WHERE created_at > '"+tLast24hStr+"')" +
-								"AND rate = '"+rate+"'")
+	q2 := database.Db.NewQuery("SELECT th.* FROM trading_history as th, " +
+									"(select min(id) as min_id, max(id) as " +
+									"max_id from trading_history " +
+									"WHERE created_at > '"+tLast24hStr+"'" +
+									"AND rate = '"+rate+"') as subq " +
+								"WHERE subq.max_id = th.id " +
+								"OR subq.min_id = th.id")
 
 
 	err = q2.All(&tradingHistory)
+
+	//log.Debug(q2.SQL())
 
 	if err != nil {
 		log.Error(err)
