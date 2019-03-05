@@ -43,8 +43,6 @@ func SockjsHandler(session sockjs.Session) {
 	for {
 		if msg, err := session.Recv(); err == nil {
 
-			log.Debug(msg)
-
 			var request daos.WebsocketRequest
 			err := json.Unmarshal([]byte(msg), &request)
 
@@ -78,7 +76,6 @@ func SockjsHandler(session sockjs.Session) {
 				tradingHistory := cache.GetCacheByTopicAndType(request.Topic, trdconst.TRADINGHISTORY).(trading.TradingListHistory)
 				tradingHistoryJson, _ := json.Marshal(tradingHistory)
 				session.Send(string(tradingHistoryJson))
-				log.Debug("TradingHistory", tradingHistory)
 
 				//Last24H
 				last24h := cache.GetCacheByTopicAndType(request.Topic, trdconst.LAST24H).(trading.TradingLast24h)
@@ -150,9 +147,6 @@ func unsubscribeClientToAllTopic(sessionID string){
 }
 
 func subscribeClientToTopic(request daos.WebsocketRequest, session sockjs.Session){
-	log.Debug("subscribe : ")
-	log.Debug(request)
-
 	daos.MyClients.AddSubscriber(request, session)
 	//log.Println(clients.Clients)
 	//log.Println(clients.ClientSessions)
