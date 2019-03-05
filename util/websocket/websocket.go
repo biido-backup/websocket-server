@@ -78,6 +78,7 @@ func SockjsHandler(session sockjs.Session) {
 				tradingHistory := cache.GetCacheByTopicAndType(request.Topic, trdconst.TRADINGHISTORY).(trading.TradingListHistory)
 				tradingHistoryJson, _ := json.Marshal(tradingHistory)
 				session.Send(string(tradingHistoryJson))
+				log.Debug("TradingHistory", tradingHistory)
 
 				//Last24H
 				last24h := cache.GetCacheByTopicAndType(request.Topic, trdconst.LAST24H).(trading.TradingLast24h)
