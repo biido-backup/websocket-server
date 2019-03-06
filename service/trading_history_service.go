@@ -118,11 +118,14 @@ func GetLast24HTransactionByRate(last24h *trading.Last24h, rate string) error {
 	if !last.Equal(decimal.Zero) {
 		(*last24h).Change = (last.Sub(first)).Div(last)
 	}
-	if (*last24h).Change.GreaterThanOrEqual(decimal.Zero){
+
+	if (*last24h).Change.GreaterThan(decimal.Zero){
 		(*last24h).State = "increasing"
-	} else {
+	} else if (*last24h).Change.LessThan(decimal.Zero) {
 		(*last24h).State = "decreasing"
 		(*last24h).Change = (*last24h).Change.Neg()
+	} else {
+		(*last24h).State = "stable"
 	}
 
 	//log.Println((*last24h).High)
