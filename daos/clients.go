@@ -196,6 +196,17 @@ func (clients Clients) SetTopic(topic string) {
 }
 
 func (clients Clients) AddSubscriber(request WebsocketRequest,session sockjs.Session){
+
+	if !clients.CheckIfTopicExists(request.Topic) {
+		log.Error("Topic doesnt exists")
+		return
+	}
+
+	if !clients.CheckIfUsernameExistsByTopic(request.Topic, request.Username) {
+		log.Error("User doesnt exists")
+		return
+	}
+
 	//CLients
 	clientSession := clients.GetListSessionByTopicAndUsername(request.Topic, request.Username)
 	if clientSession == nil{
@@ -314,10 +325,24 @@ func (clients Clients) GetListSessionByTopicAndInterval(topic string, interval s
 	return sessions
 }
 
-func (clients Clients) GetSessionByTopicAndUsernameAndSessionId(topic string, username string, sessionId string) (sockjs.Session, bool){
+func (clients Clients) CheckIfTopicExists(topic string) bool{
 	clients.muClients.RLock()
-	session, exist := clients.Clients[topic][username][sessionId]
+	_, exist := clients.Clients[topic]
 	clients.muClients.RUnlock()
-	return session, exist
+	return exist
+}
+
+func (clients Clients) CheckIfUsernameExistsByTopic(topic string, username string) bool{
+	clients.muClients.RLock()
+	_, exist := clients.Clients[topic][username]
+	clients.muClients.RUnlock()
+	return exist
+}
+
+func (clients Clients) CheckIfSessionExistsByTopicAndUsername(topic string, username string, sessionId string) bool{
+	clients.muClients.RLock()
+	_, exist := clients.Clients[topic][username][sessionId]
+	clients.muClients.RUnlock()
+	return exist
 }
 

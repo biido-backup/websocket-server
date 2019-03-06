@@ -24,48 +24,45 @@ var HasConnectedZeroMQOrderHistory = false
 
 func Listen(tradingRateList []daos.Rate)  {
 	done := make(chan bool)
-
 	c := cron.New()
 	c.AddFunc("0-59/5 * * * * *", func() {
 		if !HasConnectedZeroMQOrderBook {
 			log.Debug("Reconnect to zeromq order book")
 			for _, tradingRate := range(tradingRateList){
-				ListenOrderBook(tradingRate.StringDash())
+				go ListenOrderBook(tradingRate.StringDash())
 			}
 		}
 
 		if !HasConnectedZeroMQLast24h {
 			log.Debug("Reconnect to zeromq last 24h")
 			for _, tradingRate := range(tradingRateList){
-				ListenLast24h(tradingRate.StringDash())
+				go ListenLast24h(tradingRate.StringDash())
 			}
 		}
 
 		if !HasConnectedZeroMQTradingHistory {
 			log.Debug("Reconnect to zeromq trading history")
 			for _, tradingRate := range(tradingRateList){
-				ListenTradingHistory(tradingRate.StringDash())
+				go ListenTradingHistory(tradingRate.StringDash())
 			}
 		}
 
 		if !HasConnectedZeroMQOpenOrder {
 			log.Debug("Reconnect to zeromq open order")
 			for _, tradingRate := range(tradingRateList){
-				ListenOpenOrder(tradingRate.StringDash())
+				go ListenOpenOrder(tradingRate.StringDash())
 			}
 		}
 
 		if !HasConnectedZeroMQOrderHistory {
 			log.Debug("Reconnect to zeromq order history")
 			for _, tradingRate := range(tradingRateList){
-				ListenOrderHistory(tradingRate.StringDash())
+				go ListenOrderHistory(tradingRate.StringDash())
 			}
 		}
 	})
 	c.Start()
-
 	<- done
-
 }
 
 func ListenTest(publisher string, zmqKey string){

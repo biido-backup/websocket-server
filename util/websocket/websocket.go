@@ -143,8 +143,7 @@ func SockjsHandler(session sockjs.Session) {
 }
 
 func checkIfSubscribed(topic string, username string, sessionId string) bool{
-	_, exist := daos.MyClients.GetSessionByTopicAndUsernameAndSessionId(topic, username, sessionId)
-	return exist
+	return daos.MyClients.CheckIfSessionExistsByTopicAndUsername(topic, username, sessionId)
 }
 
 func unsubscribeClientToAllTopic(sessionID string){
