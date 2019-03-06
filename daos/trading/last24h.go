@@ -25,5 +25,6 @@ func (last24h Last24h) JsonLast24h() (string, error) {
 
 type TradingLast24h struct {
 	Type 		string 						`json:"type"`
+	Rate		string 						`json:"rate"`
 	Payload		Last24h						`json:"payload"`
 }

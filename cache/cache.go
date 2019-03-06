@@ -49,7 +49,7 @@ func FillCacheByRate(rate daos.Rate){
 		log.Fatal("Error query to last24h", err)
 	}
 
-	trdLast24h := trading.TradingLast24h{Type: trdconst.LAST24H, Payload: last24h}
+	trdLast24h := trading.TradingLast24h{Type: trdconst.LAST24H, Rate:rate.StringDash(), Payload: last24h}
 	muCacheLast24h.Lock()
 	CacheLast24h[rate.StringDash()] = trdLast24h
 	muCacheLast24h.Unlock()
@@ -97,6 +97,30 @@ func SetCacheByTopicAndType(topic string, cacheType string, cache interface{}){
 		muCacheLast24h.Lock()
 		CacheLast24h[topic] = cache.(trading.TradingLast24h)
 		muCacheLast24h.Unlock()
+	}
+}
+
+func GetCacheByType(cacheType string) interface{}{
+	if cacheType == trdconst.ORDERBOOK{
+		var cacheOrderBook map[string] trading.Orderbook
+		muCacheOrderBook.RLock()
+		cacheOrderBook = CacheOrderBook
+		muCacheOrderBook.RUnlock()
+		return cacheOrderBook
+	} else if cacheType == trdconst.TRADINGHISTORY {
+		var cacheListHistory map[string] trading.TradingListHistory
+		muCacheListHistory.RLock()
+		cacheListHistory = CacheListHistory
+		muCacheListHistory.RUnlock()
+		return cacheListHistory
+	} else if cacheType == trdconst.LAST24H {
+		var cacheLast24h map[string] trading.TradingLast24h
+		muCacheLast24h.RLock()
+		cacheLast24h = CacheLast24h
+		muCacheLast24h.RUnlock()
+		return cacheLast24h
+	} else {
+		return nil
 	}
 }
 

@@ -282,6 +282,14 @@ func (clients Clients) GetIntervalByTopicAndSessionId(topic string, sessionId st
 	return interval
 }
 
+func (clients Clients) GetAllClients() map[string] map[string] map[string] sockjs.Session{
+	var c map[string] map[string] map[string] sockjs.Session
+	clients.muClients.RLock()
+	c = clients.Clients
+	clients.muClients.RUnlock()
+	return c
+}
+
 func (clients Clients) GetAllClientsByTopic(topic string) map[string] map[string] sockjs.Session{
 	var c map[string] map[string] sockjs.Session
 	clients.muClients.RLock()

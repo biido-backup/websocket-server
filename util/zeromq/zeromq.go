@@ -18,6 +18,8 @@ var log = logger.CreateLog("zeromq")
 
 //func Listen(topic string, clients *daos.Clients){
 func Listen(topic string){
+
+
 	var matchingEngineAddr = viper.GetString("zeromq.publisher.matching-engine")
 	var tradingBrokerAddr = viper.GetString("zeromq.publisher.trading-broker")
 
@@ -125,7 +127,7 @@ func ListenOrderBook(publisher string, topic string, zmqKey string, clients *dao
 		//log.Debug(orderbook)
 		cache.SetCacheByTopicAndType(topic, trdconst.ORDERBOOK, trdOrderbook)
 
-		websocket.BroadcastMessage(topic, string(trdOrderbookJson))
+		websocket.BroadcastMessageWithTopic(topic, string(trdOrderbookJson))
 
 	}
 
@@ -170,7 +172,7 @@ func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.
 			log.Error("error when unmarshal last24h", err)
 		}
 
-		trdLast24h := trading.TradingLast24h{trdconst.LAST24H, last24h}
+		trdLast24h := trading.TradingLast24h{trdconst.LAST24H, topic, last24h}
 		trdLast24hJson, err := json.Marshal(trdLast24h)
 		if err!=nil{
 			log.Error("error when marshal last24h", err)
@@ -178,8 +180,7 @@ func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.
 
 		//log.Debug(trdLast24h)
 		cache.SetCacheByTopicAndType(topic, trdconst.LAST24H, trdLast24h)
-
-		websocket.BroadcastMessage(topic, string(trdLast24hJson))
+		websocket.BroadcastMessageToAll(string(trdLast24hJson))
 
 	}
 
@@ -234,7 +235,7 @@ func ListenTradingHistory(publisher string, topic string, zmqKey string, clients
 		//log.Debug(trdListHistory)
 		cache.SetCacheByTopicAndType(topic, trdconst.TRADINGHISTORY, trdListHistory)
 
-		websocket.BroadcastMessage(topic, string(trdListHistoryJson))
+		websocket.BroadcastMessageWithTopic(topic, string(trdListHistoryJson))
 
 	}
 }
