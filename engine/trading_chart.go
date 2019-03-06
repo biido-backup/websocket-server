@@ -81,7 +81,7 @@ func maintainTradingChart(rate daos.Rate, unitOfTime string, quantity int64, con
 
 		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.Chart{daos.ChartFromJSON(msg.Value)}}
 		tradingChartJson, _ := json.Marshal(tradingChart)
-		log.Debug(string(tradingChartJson))
+		//log.Debug(string(tradingChartJson))
 		//log.Debug(rate.StringDash(), unitOfTime, daos.GetChartList(rate.StringDash(), unitOfTime))
 
 		if unitOfTime == "1M" {

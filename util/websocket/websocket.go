@@ -85,6 +85,7 @@ func SockjsHandler(session sockjs.Session) {
 				//AllRatesLast24H
 				allRatesLast24h := cache.GetCacheByType(trdconst.LAST24H).(map[string]trading.TradingLast24h)
 				for _, last24h := range(allRatesLast24h){
+					log.Debug(last24h)
 					last24hJson, _ := json.Marshal(last24h)
 					session.Send(string(last24hJson))
 				}
