@@ -6,7 +6,6 @@ import (
 	"github.com/go-zeromq/zmq4"
 	"github.com/robfig/cron"
 	"github.com/spf13/viper"
-	"time"
 	"websocket-server/cache"
 	"websocket-server/const/trd"
 	"websocket-server/daos"
@@ -29,7 +28,6 @@ func Listen(tradingRateList []daos.Rate)  {
 			log.Debug("Reconnect to zeromq matching engine client")
 			for _, tradingRate := range(tradingRateList){
 				ListenMatchingEngine(tradingRate.StringDash())
-				time.Sleep(time.Millisecond)
 			}
 		}
 	})
@@ -41,7 +39,6 @@ func Listen(tradingRateList []daos.Rate)  {
 			log.Debug("Reconnect to zeromq trading broker client")
 			for _, tradingRate := range(tradingRateList){
 				ListenTradingBroker(tradingRate.StringDash())
-				time.Sleep(time.Millisecond)
 			}
 		}
 	})
@@ -56,7 +53,6 @@ func ListenMatchingEngine(topic string){
 	var suffixOrderBook = viper.GetString("zeromq.key.suffix.orderbook")
 
 	go ListenOrderBook(matchingEngineAddr, topic, topic+suffixOrderBook, &daos.MyClients)
-	time.Sleep(time.Millisecond)
 }
 
 func ListenTradingBroker(topic string){
@@ -68,11 +64,8 @@ func ListenTradingBroker(topic string){
 	var suffixOrderHistory = viper.GetString("zeromq.key.suffix.orderhistory")
 
 	go ListenLast24h(tradingBrokerAddr, topic, topic+suffixLast24h, &daos.MyClients)
-	time.Sleep(time.Millisecond)
 	go ListenTradingHistory(tradingBrokerAddr, topic, topic+suffixTradingHistory, &daos.MyClients)
-	time.Sleep(time.Millisecond)
 	go ListenOpenOrder(tradingBrokerAddr, topic, topic+suffixOpenOrder, &daos.MyClients)
-	time.Sleep(time.Millisecond)
 	go ListenOrderHistory(tradingBrokerAddr, topic, topic+suffixOrderHistory, &daos.MyClients)
 }
 
@@ -160,7 +153,7 @@ func ListenOrderBook(publisher string, topic string, zmqKey string, clients *dao
 
 		//log.Debug(orderbook)
 		cache.SetCacheByTopicAndType(topic, trdconst.ORDERBOOK, trdOrderbook)
-		websocket.BroadcastMessage(topic, string(trdOrderbookJson))
+		websocket.BroadcastMessageWithTopic(topic, string(trdOrderbookJson))
 	}
 }
 
@@ -208,15 +201,15 @@ func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.
 			log.Error("error when unmarshal last24h", err)
 		}
 
-		trdLast24h := trading.TradingLast24h{trdconst.LAST24H, last24h}
+		trdLast24h := trading.TradingLast24h{trdconst.LAST24H, topic, last24h}
 		trdLast24hJson, err := json.Marshal(trdLast24h)
 		if err!=nil{
 			log.Error("error when marshal last24h", err)
 		}
 
-		log.Debug(trdLast24h)
+		//log.Debug(trdLast24h)
 		cache.SetCacheByTopicAndType(topic, trdconst.LAST24H, trdLast24h)
-		websocket.BroadcastMessage(topic, string(trdLast24hJson))
+		websocket.BroadcastMessageToAll(string(trdLast24hJson))
 	}
 }
 
@@ -270,9 +263,9 @@ func ListenTradingHistory(publisher string, topic string, zmqKey string, clients
 			log.Error("error when marshal listHistory", err)
 		}
 
-		log.Debug(trdListHistory)
+		//log.Debug(trdListHistory)
 		cache.SetCacheByTopicAndType(topic, trdconst.TRADINGHISTORY, trdListHistory)
-		websocket.BroadcastMessage(topic, string(trdListHistoryJson))
+		websocket.BroadcastMessageWithTopic(topic, string(trdListHistoryJson))
 	}
 }
 
@@ -326,8 +319,8 @@ func ListenOpenOrder(publisher string, topic string, zmqKey string, clients *dao
 		}
 
 		username := listOpenOrder.Username
-		log.Println("username : ",username)
-		log.Debug(trdListOpenOrder)
+		//log.Println("username : ",username)
+		//log.Debug(trdListOpenOrder)
 		websocket.SendMessageToUser(topic, username, string(trdListOpenOrderJson))
 	}
 }
@@ -384,8 +377,8 @@ func ListenOrderHistory(publisher string, topic string, zmqKey string, clients *
 		}
 
 		username := listOrderHistory.Username
-		log.Println("username : ",username)
-		log.Debug(trdListOrderHistory)
+		//log.Println("username : ",username)
+		//log.Debug(trdListOrderHistory)
 		websocket.SendMessageToUser(topic, username, string(trdListOrderHistoryJson))
 	}
 }

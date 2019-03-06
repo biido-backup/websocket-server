@@ -43,8 +43,6 @@ func SockjsHandler(session sockjs.Session) {
 	for {
 		if msg, err := session.Recv(); err == nil {
 
-			log.Debug(msg)
-
 			var request daos.WebsocketRequest
 			err := json.Unmarshal([]byte(msg), &request)
 
@@ -80,9 +78,16 @@ func SockjsHandler(session sockjs.Session) {
 				session.Send(string(tradingHistoryJson))
 
 				//Last24H
-				last24h := cache.GetCacheByTopicAndType(request.Topic, trdconst.LAST24H).(trading.TradingLast24h)
-				last24hJson, _ := json.Marshal(last24h)
-				session.Send(string(last24hJson))
+				//last24h := cache.GetCacheByTopicAndType(request.Topic, trdconst.LAST24H).(trading.TradingLast24h)
+				//last24hJson, _ := json.Marshal(last24h)
+				//session.Send(string(last24hJson))
+
+				//AllRatesLast24H
+				allRatesLast24h := cache.GetCacheByType(trdconst.LAST24H).(map[string]trading.TradingLast24h)
+				for _, last24h := range(allRatesLast24h){
+					last24hJson, _ := json.Marshal(last24h)
+					session.Send(string(last24hJson))
+				}
 
 				//OrderHistory
 				const offset uint64 = 0
@@ -149,9 +154,6 @@ func unsubscribeClientToAllTopic(sessionID string){
 }
 
 func subscribeClientToTopic(request daos.WebsocketRequest, session sockjs.Session){
-	log.Debug("subscribe : ")
-	log.Debug(request)
-
 	daos.MyClients.AddSubscriber(request, session)
 	//log.Println(clients.Clients)
 	//log.Println(clients.ClientSessions)
@@ -159,7 +161,20 @@ func subscribeClientToTopic(request daos.WebsocketRequest, session sockjs.Sessio
 	//log.Println(clients.IntervalSessions)
 }
 
-func BroadcastMessage(topic string, str string){
+func BroadcastMessageToAll(str string){
+	//start := time.Now()
+	var c map[string] map[string] map[string] sockjs.Session
+	c = daos.MyClients.GetAllClients()
+	for _,topic := range(c){
+		for _, username := range(topic) {
+			for _, session := range(username){
+				session.Send(str)
+			}
+		}
+	}
+}
+
+func BroadcastMessageWithTopic(topic string, str string){
 	//start := time.Now()
 	var c map[string] map[string] sockjs.Session
 	c = daos.MyClients.GetAllClientsByTopic(topic)
