@@ -202,11 +202,6 @@ func (clients Clients) AddSubscriber(request WebsocketRequest,session sockjs.Ses
 		return
 	}
 
-	if !clients.CheckIfUsernameExistsByTopic(request.Topic, request.Username) {
-		log.Error("User doesnt exists")
-		return
-	}
-
 	//CLients
 	clientSession := clients.GetListSessionByTopicAndUsername(request.Topic, request.Username)
 	if clientSession == nil{

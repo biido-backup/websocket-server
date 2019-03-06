@@ -216,7 +216,7 @@ func ListenLast24h(topic string){
 			log.Error("error when marshal last24h", err)
 		}
 
-		//log.Debug(trdLast24h)
+		log.Debug(trdLast24h)
 		cache.SetCacheByTopicAndType(topic, trdconst.LAST24H, trdLast24h)
 		websocket.BroadcastMessageToAll(string(trdLast24hJson))
 	}
