@@ -15,6 +15,7 @@ require (
 	github.com/linkedin/goavro v2.1.0+incompatible
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
+	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24
 	github.com/sirupsen/logrus v1.3.0
 	github.com/spf13/viper v1.3.1

@@ -52,12 +52,7 @@ func main(){
 		cache.FillCacheByRate(tradingRate)
 	}
 
-	for _, tradingRate := range(tradingRateList){
-		log.Println(tradingRate)
-		zeromq.Listen(tradingRate.StringDash())
-		time.Sleep(time.Millisecond)
-	}
-
+	go zeromq.Listen(tradingRateList)
 	go engine.ProcessTradingChart(tradingRateList)
 
 	err := websocket.ServeSocket()

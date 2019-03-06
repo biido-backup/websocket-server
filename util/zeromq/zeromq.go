@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/go-zeromq/zmq4"
+	"github.com/robfig/cron"
 	"github.com/spf13/viper"
 	"time"
 	"websocket-server/cache"
@@ -16,26 +17,56 @@ import (
 
 var log = logger.CreateLog("zeromq")
 
-//func Listen(topic string, clients *daos.Clients){
-func Listen(topic string){
+var HasConnectedZeroMQMatchingEngine = false
+var HasConnectedZeroMQTradingBroker = false
+
+func Listen(tradingRateList []daos.Rate)  {
+	done := make(chan bool)
+
+	cronZMQMatchingEngine := cron.New()
+	cronZMQMatchingEngine.AddFunc("0-59/5 * * * * *", func() {
+		if !HasConnectedZeroMQMatchingEngine {
+			log.Debug("Reconnect to zeromq matching engine client")
+			for _, tradingRate := range(tradingRateList){
+				ListenMatchingEngine(tradingRate.StringDash())
+				time.Sleep(time.Millisecond)
+			}
+		}
+	})
+	cronZMQMatchingEngine.Start()
+
+	cronZMQTradingBroker := cron.New()
+	cronZMQTradingBroker.AddFunc("0-59/5 * * * * *", func() {
+		if !HasConnectedZeroMQTradingBroker {
+			log.Debug("Reconnect to zeromq trading broker client")
+			for _, tradingRate := range(tradingRateList){
+				ListenTradingBroker(tradingRate.StringDash())
+				time.Sleep(time.Millisecond)
+			}
+		}
+	})
+	cronZMQTradingBroker.Start()
+
+	<- done
+
+}
+
+func ListenMatchingEngine(topic string){
 	var matchingEngineAddr = viper.GetString("zeromq.publisher.matching-engine")
+	var suffixOrderBook = viper.GetString("zeromq.key.suffix.orderbook")
+
+	go ListenOrderBook(matchingEngineAddr, topic, topic+suffixOrderBook, &daos.MyClients)
+	time.Sleep(time.Millisecond)
+}
+
+func ListenTradingBroker(topic string){
 	var tradingBrokerAddr = viper.GetString("zeromq.publisher.trading-broker")
 
-	var suffixOrderBook = viper.GetString("zeromq.key.suffix.orderbook")
 	var suffixLast24h = viper.GetString("zeromq.key.suffix.last24h")
 	var suffixTradingHistory = viper.GetString("zeromq.key.suffix.tradinghistory")
 	var suffixOpenOrder = viper.GetString("zeromq.key.suffix.openorder")
 	var suffixOrderHistory = viper.GetString("zeromq.key.suffix.orderhistory")
-	//
 
-	//log.Println(topic)
-
-	//go ListenTest("tcp://localhost:5563", "BTC-IDR:ORDER_BOOK")
-	//go ListenTest("tcp://localhost:5564", "BTC-IDR:LAST24H_TRANSACTION")
-	//go ListenTest("tcp://localhost:5564", "BTC-IDR:TRADING_HISTORY")
-
-	go ListenOrderBook(matchingEngineAddr, topic, topic+suffixOrderBook, &daos.MyClients)
-	time.Sleep(time.Millisecond)
 	go ListenLast24h(tradingBrokerAddr, topic, topic+suffixLast24h, &daos.MyClients)
 	time.Sleep(time.Millisecond)
 	go ListenTradingHistory(tradingBrokerAddr, topic, topic+suffixTradingHistory, &daos.MyClients)
@@ -83,16 +114,15 @@ func ListenTest(publisher string, zmqKey string){
 }
 
 func ListenOrderBook(publisher string, topic string, zmqKey string, clients *daos.Clients){
-
 	clients.SetTopic(topic)
-
 	sub := zmq4.NewSub(context.Background())
-	defer sub.Close()
 
 	//dial
 	err := sub.Dial(publisher)
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
+
+		HasConnectedZeroMQMatchingEngine = false
 		return
 	}
 
@@ -100,15 +130,21 @@ func ListenOrderBook(publisher string, topic string, zmqKey string, clients *dao
 	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
+
+		HasConnectedZeroMQMatchingEngine = false
 		return
 	}
 
+	HasConnectedZeroMQMatchingEngine = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
 		if err != nil {
 			log.Error("could not receive message", err)
-			continue
+
+			sub.Close()
+			HasConnectedZeroMQMatchingEngine = false
+			break
 		}
 		//
 		var orderbook trading.OrderBookZeroMQ
@@ -124,25 +160,21 @@ func ListenOrderBook(publisher string, topic string, zmqKey string, clients *dao
 
 		//log.Debug(orderbook)
 		cache.SetCacheByTopicAndType(topic, trdconst.ORDERBOOK, trdOrderbook)
-
 		websocket.BroadcastMessage(topic, string(trdOrderbookJson))
-
 	}
-
 }
 
 
 func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.Clients){
-
 	clients.SetTopic(topic)
-
 	sub := zmq4.NewSub(context.Background())
-	defer sub.Close()
 
 	//dial
 	err := sub.Dial(publisher)
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
+
+		HasConnectedZeroMQTradingBroker = false
 		return
 	}
 
@@ -150,15 +182,21 @@ func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.
 	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
+
+		HasConnectedZeroMQTradingBroker = false
 		return
 	}
 
+	HasConnectedZeroMQTradingBroker = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
 		if err != nil {
 			log.Error("could not receive message", err)
-			continue
+
+			sub.Close()
+			HasConnectedZeroMQTradingBroker = false
+			break
 		}
 		//
 
@@ -178,26 +216,21 @@ func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.
 
 		log.Debug(trdLast24h)
 		cache.SetCacheByTopicAndType(topic, trdconst.LAST24H, trdLast24h)
-
 		websocket.BroadcastMessage(topic, string(trdLast24hJson))
-
 	}
-
-
 }
 
 
 func ListenTradingHistory(publisher string, topic string, zmqKey string, clients *daos.Clients){
-
 	clients.SetTopic(topic)
-
 	sub := zmq4.NewSub(context.Background())
-	defer sub.Close()
 
 	//dial
 	err := sub.Dial(publisher)
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
+
+		HasConnectedZeroMQTradingBroker = false
 		return
 	}
 
@@ -205,15 +238,21 @@ func ListenTradingHistory(publisher string, topic string, zmqKey string, clients
 	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
+
+		HasConnectedZeroMQTradingBroker = false
 		return
 	}
 
+	HasConnectedZeroMQTradingBroker = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
 		if err != nil {
 			log.Error("could not receive message", err)
-			continue
+
+			sub.Close()
+			HasConnectedZeroMQTradingBroker = false
+			break
 		}
 		//
 
@@ -233,23 +272,20 @@ func ListenTradingHistory(publisher string, topic string, zmqKey string, clients
 
 		log.Debug(trdListHistory)
 		cache.SetCacheByTopicAndType(topic, trdconst.TRADINGHISTORY, trdListHistory)
-
 		websocket.BroadcastMessage(topic, string(trdListHistoryJson))
-
 	}
 }
 
 func ListenOpenOrder(publisher string, topic string, zmqKey string, clients *daos.Clients){
-
 	clients.SetTopic(topic)
-
 	sub := zmq4.NewSub(context.Background())
-	defer sub.Close()
 
 	//dial
 	err := sub.Dial(publisher)
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
+
+		HasConnectedZeroMQTradingBroker = false
 		return
 	}
 
@@ -257,15 +293,21 @@ func ListenOpenOrder(publisher string, topic string, zmqKey string, clients *dao
 	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
+
+		HasConnectedZeroMQTradingBroker = false
 		return
 	}
 
+	HasConnectedZeroMQTradingBroker = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
 		if err != nil {
 			log.Error("could not receive message", err)
-			continue
+
+			sub.Close()
+			HasConnectedZeroMQTradingBroker = false
+			break
 		}
 		//
 
@@ -284,11 +326,9 @@ func ListenOpenOrder(publisher string, topic string, zmqKey string, clients *dao
 		}
 
 		username := listOpenOrder.Username
-		//log.Println("username : ",username)
+		log.Println("username : ",username)
 		log.Debug(trdListOpenOrder)
 		websocket.SendMessageToUser(topic, username, string(trdListOpenOrderJson))
-
-
 	}
 }
 
@@ -296,14 +336,14 @@ func ListenOrderHistory(publisher string, topic string, zmqKey string, clients *
 	const SIZE = 5
 
 	clients.SetTopic(topic)
-
 	sub := zmq4.NewSub(context.Background())
-	defer sub.Close()
 
 	//dial
 	err := sub.Dial(publisher)
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
+
+		HasConnectedZeroMQTradingBroker = false
 		return
 	}
 
@@ -311,15 +351,21 @@ func ListenOrderHistory(publisher string, topic string, zmqKey string, clients *
 	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
+
+		HasConnectedZeroMQTradingBroker = false
 		return
 	}
 
+	HasConnectedZeroMQTradingBroker = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
 		if err != nil {
 			log.Error("could not receive message", err)
-			continue
+
+			sub.Close()
+			HasConnectedZeroMQTradingBroker = false
+			break
 		}
 		//
 
@@ -338,9 +384,8 @@ func ListenOrderHistory(publisher string, topic string, zmqKey string, clients *
 		}
 
 		username := listOrderHistory.Username
-		//log.Println("username : ",username)
+		log.Println("username : ",username)
 		log.Debug(trdListOrderHistory)
 		websocket.SendMessageToUser(topic, username, string(trdListOrderHistoryJson))
-
 	}
 }
