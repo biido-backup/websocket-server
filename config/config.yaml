@@ -30,11 +30,11 @@ zeromq:
     trading-broker: tcp://localhost:5564
   key:
     suffix:
-      orderbook: :ORDER_BOOK
-      openorder: :OPEN_ORDER
-      orderhistory: :ORDER_HISTORY
-      last24h: :LAST24H_TRANSACTION
-      tradinghistory: :TRADING_HISTORY
+      orderbook: ORDER_BOOK
+      openorder: OPEN_ORDER
+      orderhistory: ORDER_HISTORY
+      last24h: LAST24H_TRANSACTION
+      tradinghistory: TRADING_HISTORY
 
 sockjs:
   port: 18000

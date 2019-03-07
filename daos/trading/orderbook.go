@@ -14,6 +14,7 @@ type Orderbook struct {
 }
 
 type OrderBookZeroMQ struct {
+	Rate 					string
 	BuyOrderPriceList 		[]PriceAmount
 	SellOrderPriceList 		[]PriceAmount
 }
@@ -23,6 +24,10 @@ func init()  {
 		"name": "OrderBook",
 		"type": "record",
 		"fields": [
+			{
+				"name": "rate",
+				"type": "string"
+			},
 			{
 				"name": "buyOrders",
 				"type": {
@@ -74,6 +79,7 @@ func OrderBookFromJSONZeroMQ(msg []byte) OrderBookZeroMQ {
 		fmt.Println(err)
 	}
 	OrderBookMap := native.(map[string]interface{})
+	rate := OrderBookMap["rate"].(string)
 	buyOrders := OrderBookMap["buyOrders"].([]interface{})
 	sellOrders := OrderBookMap["sellOrders"].([]interface{})
 
@@ -101,6 +107,7 @@ func OrderBookFromJSONZeroMQ(msg []byte) OrderBookZeroMQ {
 		sellOrderPriceList = append(sellOrderPriceList, priceAmount)
 	}
 
+	orderBook.Rate = rate
 	orderBook.BuyOrderPriceList = buyOrderPriceList
 	orderBook.SellOrderPriceList = sellOrderPriceList
 

@@ -85,7 +85,7 @@ func SockjsHandler(session sockjs.Session) {
 				//AllRatesLast24H
 				allRatesLast24h := cache.GetCacheByType(trdconst.LAST24H).(map[string]trading.TradingLast24h)
 				for _, last24h := range(allRatesLast24h){
-					log.Debug(last24h)
+					//log.Debug(last24h)
 					last24hJson, _ := json.Marshal(last24h)
 					session.Send(string(last24hJson))
 				}
@@ -116,9 +116,8 @@ func SockjsHandler(session sockjs.Session) {
 
 			} else if request.Method == "reload_openorder" {
 				//OpenOrder
-				log.Debug("Reload Open Order")
 				if checkIfSubscribed(request.Topic, request.Username, session.ID()){
-					log.Debug("Reload Open Order: MASUK")
+					log.Debug("SockjsHandler", "RELOAD OPEN ORDER")
 					var openOrders trading.OpenOrders
 					err = service.GetOpenOrdersByUsernameAndRate(&openOrders, request.Username, rate.StringSlah())
 					if err != nil {
@@ -168,6 +167,7 @@ func BroadcastMessageToAll(str string){
 	for _,topic := range(c){
 		for _, username := range(topic) {
 			for _, session := range(username){
+				//log.Debug("SENT TO : ", topic, username, session.ID())
 				session.Send(str)
 			}
 		}

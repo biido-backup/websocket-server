@@ -14,6 +14,11 @@ type Last24h struct {
 	State			string						`json:"state"`
 }
 
+type Last24hTrx struct {
+	Rate				string					`json:"topic"`
+	Last24h				Last24h					`json:"last24H"`
+}
+
 func (last24h Last24h) JsonLast24h() (string, error) {
 	last24hJson, err := json.Marshal(last24h)
 	if err != nil {

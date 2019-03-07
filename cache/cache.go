@@ -33,7 +33,7 @@ func FillCacheByRate(rate daos.Rate){
 	if err != nil {
 		log.Error("Error query to trading_history", err)
 	}
-	trdListHistory := trading.TradingListHistory{Type: trdconst.TRADINGHISTORY, Payload: listHistory}
+	trdListHistory := trading.TradingListHistory{Type: trdconst.TRADINGHISTORY, Payload: listHistory.Histories}
 
 	muCacheListHistory.Lock()
 	CacheListHistory[rate.StringDash()] = trdListHistory

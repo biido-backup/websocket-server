@@ -20,6 +20,7 @@ type OrderHistory struct {
 }
 
 type ListOrderHistory struct {
+	Rate 					string					`json:"rate"`
 	Username 				string					`json:"username"`
 	Size					int64					`json:"size"`
 	OrderHistories			[]OrderHistory			`json:"orderHistories"`

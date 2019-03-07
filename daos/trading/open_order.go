@@ -22,6 +22,7 @@ type OpenOrder struct {
 }
 
 type ListOpenOrder struct {
+	Rate 					string					`json:"rate"`
 	Username 				string					`json:"username"`
 	OpenOrders				[]OpenOrder				`json:"openOrders"`
 }

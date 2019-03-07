@@ -52,7 +52,7 @@ func main(){
 		cache.FillCacheByRate(tradingRate)
 	}
 
-	go zeromq.Listen(tradingRateList)
+	go zeromq.Listen()
 	go engine.ProcessTradingChart(tradingRateList)
 
 	err := websocket.ServeSocket()

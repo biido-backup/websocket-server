@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/viper"
 	"websocket-server/cache"
 	"websocket-server/const/trd"
-	"websocket-server/daos"
 	"websocket-server/daos/trading"
 	"websocket-server/util/logger"
 	"websocket-server/util/websocket"
@@ -16,58 +15,64 @@ import (
 
 var log = logger.CreateLog("zeromq")
 
-var HasConnectedZeroMQOrderBook = false
-var HasConnectedZeroMQLast24h = false
-var HasConnectedZeroMQTradingHistory = false
-var HasConnectedZeroMQOpenOrder = false
-var HasConnectedZeroMQOrderHistory = false
+var ConnectedToZeroMQOrderBook = false
+var ConnectedToZeroMQLast24H = false
+var ConnectedToZeroMQTradingHistory = false
+var ConnectedToZeroMQOpenOrder = false
+var ConnectedToZeroMQOrderHistory = false
 
-func Listen(tradingRateList []daos.Rate)  {
+
+func Listen()  {
 	done := make(chan bool)
 
 	c := cron.New()
 	c.AddFunc("0-59/5 * * * * *", func() {
-		ListenAll(tradingRateList)
+		ListenAll()
 	})
 	c.Start()
 
 	<- done
 }
 
-func ListenAll(tradingRateList []daos.Rate) {
-	if !HasConnectedZeroMQOrderBook {
-		log.Debug("Reconnect to zeromq order book")
-		for _, tradingRate := range(tradingRateList){
-			go ListenOrderBook(tradingRate.StringDash())
-		}
+func ListenAll() {
+	if !ConnectedToZeroMQOrderBook {
+		log.Info("Reconnect to zeromq order book")
+		//for _, tradingRate := range(tradingRateList){
+		//	go ListenOrderBook(tradingRate.StringDash())
+		//}
+		go ListenOrderBook()
 	}
 
-	if !HasConnectedZeroMQLast24h {
-		log.Debug("Reconnect to zeromq last 24h")
-		for _, tradingRate := range(tradingRateList){
-			go ListenLast24h(tradingRate.StringDash())
-		}
+	if !ConnectedToZeroMQLast24H {
+		log.Info("Reconnect to zeromq last 24h")
+		//for _, tradingRate := range(tradingRateList){
+		//	go ListenLast24h(tradingRate.StringDash())
+		//}
+		go ListenLast24h()
 	}
 
-	if !HasConnectedZeroMQTradingHistory {
-		log.Debug("Reconnect to zeromq trading history")
-		for _, tradingRate := range(tradingRateList){
-			go ListenTradingHistory(tradingRate.StringDash())
-		}
+	if !ConnectedToZeroMQTradingHistory {
+		log.Info("Reconnect to zeromq trading history")
+		//for _, tradingRate := range(tradingRateList){
+		//	go ListenTradingHistory(tradingRate.StringDash())
+		//}
+		go ListenTradingHistory()
 	}
 
-	if !HasConnectedZeroMQOpenOrder {
+	if !ConnectedToZeroMQOpenOrder {
 		log.Debug("Reconnect to zeromq open order")
-		for _, tradingRate := range(tradingRateList){
-			go ListenOpenOrder(tradingRate.StringDash())
-		}
+		//for _, tradingRate := range(tradingRateList){
+		//	go ListenOpenOrder(tradingRate.StringDash())
+		//}
+		go ListenOpenOrder()
 	}
 
-	if !HasConnectedZeroMQOrderHistory {
+	if !ConnectedToZeroMQOrderHistory {
 		log.Debug("Reconnect to zeromq order history")
-		for _, tradingRate := range(tradingRateList){
-			go ListenOrderHistory(tradingRate.StringDash())
-		}
+		//for _, tradingRate := range(tradingRateList){
+		//	go ListenOrderHistory(tradingRate.StringDash())
+		//}
+		go ListenOrderHistory()
 	}
 }
 
@@ -108,19 +113,17 @@ func ListenTest(publisher string, zmqKey string){
 	}
 }
 
-func ListenOrderBook(topic string){
+func ListenOrderBook(){
 	publisher := viper.GetString("zeromq.publisher.matching-engine")
-	zmqKey := topic + viper.GetString("zeromq.key.suffix.orderbook")
+	zmqKey := viper.GetString("zeromq.key.suffix.orderbook")
 
-	(&daos.MyClients).SetTopic(topic)
 	sub := zmq4.NewSub(context.Background())
 
 	//dial
 	err := sub.Dial(publisher)
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
-
-		HasConnectedZeroMQOrderBook = false
+		ConnectedToZeroMQOrderBook = false
 		return
 	}
 
@@ -128,20 +131,18 @@ func ListenOrderBook(topic string){
 	err = sub.SetOption(zmq4.OptionSubscribe, zmqKey)
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
-
-		HasConnectedZeroMQOrderBook = false
+		ConnectedToZeroMQOrderBook = false
 		return
 	}
 
-	HasConnectedZeroMQOrderBook = true
+	ConnectedToZeroMQOrderBook = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
 		if err != nil {
 			log.Error("could not receive message", err)
-
 			sub.Close()
-			HasConnectedZeroMQOrderBook = false
+			ConnectedToZeroMQOrderBook = false
 			break
 		}
 		//
@@ -149,26 +150,26 @@ func ListenOrderBook(topic string){
 		//msg.Frames[0] --> zmqKey
 		//msg.Frames[1] --> message
 		orderbook = trading.OrderBookFromJSONZeroMQ(msg.Frames[1])
+		topic := orderbook.Rate
 
 		trdOrderbook := trading.Orderbook{trdconst.ORDERBOOK, orderbook}
 		trdOrderbookJson, err := json.Marshal(trdOrderbook)
 		if err!=nil{
-			log.Error("error when unmarshal orderbook", err)
+			log.Error("error when marshal orderbook", err)
 		}
 
 		//log.Debug(orderbook)
 		cache.SetCacheByTopicAndType(topic, trdconst.ORDERBOOK, trdOrderbook)
-		websocket.BroadcastMessageWithTopic(topic, string(trdOrderbookJson))
+		websocket.BroadcastMessageWithTopic(orderbook.Rate, string(trdOrderbookJson))
 	}
 }
 
 
 //func ListenLast24h(publisher string, topic string, zmqKey string, clients *daos.Clients){
-func ListenLast24h(topic string){
+func ListenLast24h(){
 	publisher := viper.GetString("zeromq.publisher.trading-broker")
-	zmqKey := topic + viper.GetString("zeromq.key.suffix.last24h")
+	zmqKey := viper.GetString("zeromq.key.suffix.last24h")
 
-	(&daos.MyClients).SetTopic(topic)
 	sub := zmq4.NewSub(context.Background())
 
 	//dial
@@ -176,7 +177,7 @@ func ListenLast24h(topic string){
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
 
-		HasConnectedZeroMQLast24h = false
+		ConnectedToZeroMQLast24H = false
 		return
 	}
 
@@ -185,11 +186,11 @@ func ListenLast24h(topic string){
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
 
-		HasConnectedZeroMQLast24h = false
+		ConnectedToZeroMQLast24H = false
 		return
 	}
 
-	HasConnectedZeroMQLast24h = true
+	ConnectedToZeroMQLast24H = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
@@ -197,37 +198,38 @@ func ListenLast24h(topic string){
 			log.Error("could not receive message", err)
 
 			sub.Close()
-			HasConnectedZeroMQLast24h = false
+			ConnectedToZeroMQLast24H = false
 			break
 		}
 		//
 
-		var last24h trading.Last24h
+		var last24hTrx trading.Last24hTrx
 		//msg.Frames[0] --> zmqKey
 		//msg.Frames[1] --> message
-		err = json.Unmarshal(msg.Frames[1], &last24h)
+		err = json.Unmarshal(msg.Frames[1], &last24hTrx)
 		if err != nil {
-			log.Error("error when unmarshal last24h", err)
+			log.Error("error when unmarshal last24hTrx", err)
 		}
 
-		trdLast24h := trading.TradingLast24h{trdconst.LAST24H, topic, last24h}
+		topic := last24hTrx.Rate
+
+		trdLast24h := trading.TradingLast24h{trdconst.LAST24H, topic, last24hTrx.Last24h}
 		trdLast24hJson, err := json.Marshal(trdLast24h)
 		if err!=nil{
-			log.Error("error when marshal last24h", err)
+			log.Error("error when marshal last24hTrx", err)
 		}
 
-		//log.Debug(trdLast24h)
+		log.Debug("ListenLast24h", trdLast24h.Payload)
 		cache.SetCacheByTopicAndType(topic, trdconst.LAST24H, trdLast24h)
 		websocket.BroadcastMessageToAll(string(trdLast24hJson))
 	}
 }
 
 
-func ListenTradingHistory(topic string){
+func ListenTradingHistory(){
 	publisher := viper.GetString("zeromq.publisher.trading-broker")
-	zmqKey := topic + viper.GetString("zeromq.key.suffix.tradinghistory")
+	zmqKey := viper.GetString("zeromq.key.suffix.tradinghistory")
 
-	(&daos.MyClients).SetTopic(topic)
 	sub := zmq4.NewSub(context.Background())
 
 	//dial
@@ -235,7 +237,7 @@ func ListenTradingHistory(topic string){
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
 
-		HasConnectedZeroMQTradingHistory = false
+		ConnectedToZeroMQTradingHistory = false
 		return
 	}
 
@@ -244,11 +246,11 @@ func ListenTradingHistory(topic string){
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
 
-		HasConnectedZeroMQTradingHistory = false
+		ConnectedToZeroMQTradingHistory = false
 		return
 	}
 
-	HasConnectedZeroMQTradingHistory = true
+	ConnectedToZeroMQTradingHistory = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
@@ -256,7 +258,7 @@ func ListenTradingHistory(topic string){
 			log.Error("could not receive message", err)
 
 			sub.Close()
-			HasConnectedZeroMQTradingHistory = false
+			ConnectedToZeroMQTradingHistory = false
 			break
 		}
 		//
@@ -269,23 +271,24 @@ func ListenTradingHistory(topic string){
 			log.Error("error when unmarshal listHistory", err)
 		}
 
-		trdListHistory := trading.TradingListHistory{trdconst.TRADINGHISTORY, listHistory}
+		topic := listHistory.Rate
+
+		trdListHistory := trading.TradingListHistory{trdconst.TRADINGHISTORY, listHistory.Histories}
 		trdListHistoryJson, err := json.Marshal(trdListHistory)
 		if err!=nil{
 			log.Error("error when marshal listHistory", err)
 		}
 
-		//log.Debug("TradingHistories[0]",trdListHistory.Payload.Histories[0])
+		log.Debug("ListenTradingHistory",trdListHistory.Payload[0])
 		cache.SetCacheByTopicAndType(topic, trdconst.TRADINGHISTORY, trdListHistory)
 		websocket.BroadcastMessageWithTopic(topic, string(trdListHistoryJson))
 	}
 }
 
-func ListenOpenOrder(topic string){
+func ListenOpenOrder(){
 	publisher := viper.GetString("zeromq.publisher.trading-broker")
-	zmqKey := topic + viper.GetString("zeromq.key.suffix.openorder")
+	zmqKey := viper.GetString("zeromq.key.suffix.openorder")
 
-	(&daos.MyClients).SetTopic(topic)
 	sub := zmq4.NewSub(context.Background())
 
 	//dial
@@ -293,7 +296,7 @@ func ListenOpenOrder(topic string){
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
 
-		HasConnectedZeroMQOpenOrder = false
+		ConnectedToZeroMQOpenOrder = false
 		return
 	}
 
@@ -302,11 +305,11 @@ func ListenOpenOrder(topic string){
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
 
-		HasConnectedZeroMQOpenOrder = false
+		ConnectedToZeroMQOpenOrder = false
 		return
 	}
 
-	HasConnectedZeroMQOpenOrder = true
+	ConnectedToZeroMQOpenOrder = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
@@ -314,7 +317,7 @@ func ListenOpenOrder(topic string){
 			log.Error("could not receive message", err)
 
 			sub.Close()
-			HasConnectedZeroMQOpenOrder = false
+			ConnectedToZeroMQOpenOrder = false
 			break
 		}
 		//
@@ -327,6 +330,8 @@ func ListenOpenOrder(topic string){
 			log.Error("error when unmarshal listOpenOrder", err)
 		}
 
+		topic := listOpenOrder.Rate
+
 		trdListOpenOrder := trading.OpenOrders{Type:trdconst.OPENORDER, Payload:listOpenOrder.OpenOrders}
 		trdListOpenOrderJson, err := json.Marshal(trdListOpenOrder)
 		if err!=nil{
@@ -335,18 +340,17 @@ func ListenOpenOrder(topic string){
 
 		username := listOpenOrder.Username
 		//log.Println("username : ",username)
-		//log.Debug(trdListOpenOrder)
+		log.Debug("ListenOpenOrder", trdListOpenOrder.Payload[0])
 		websocket.SendMessageToUser(topic, username, string(trdListOpenOrderJson))
 	}
 }
 
-func ListenOrderHistory(topic string){
+func ListenOrderHistory(){
 	publisher := viper.GetString("zeromq.publisher.trading-broker")
-	zmqKey := topic + viper.GetString("zeromq.key.suffix.orderhistory")
+	zmqKey := viper.GetString("zeromq.key.suffix.orderhistory")
 
 	const SIZE = 5
 
-	(&daos.MyClients).SetTopic(topic)
 	sub := zmq4.NewSub(context.Background())
 
 	//dial
@@ -354,7 +358,7 @@ func ListenOrderHistory(topic string){
 	if err != nil {
 		log.Error("could not dial publisher "+publisher, err)
 
-		HasConnectedZeroMQOrderHistory = false
+		ConnectedToZeroMQOrderHistory = false
 		return
 	}
 
@@ -363,11 +367,11 @@ func ListenOrderHistory(topic string){
 	if err != nil {
 		log.Error("could not subscribe publisher "+publisher, err)
 
-		HasConnectedZeroMQOrderHistory = false
+		ConnectedToZeroMQOrderHistory = false
 		return
 	}
 
-	HasConnectedZeroMQOrderHistory = true
+	ConnectedToZeroMQOrderHistory = true
 	for {
 		// Read envelope
 		msg, err := sub.Recv()
@@ -375,7 +379,7 @@ func ListenOrderHistory(topic string){
 			log.Error("could not receive message", err)
 
 			sub.Close()
-			HasConnectedZeroMQOrderHistory = false
+			ConnectedToZeroMQOrderHistory = false
 			break
 		}
 		//
@@ -388,6 +392,8 @@ func ListenOrderHistory(topic string){
 			log.Error("error when unmarshal listOrderHistory", err)
 		}
 
+		topic := listOrderHistory.Rate
+
 		trdListOrderHistory := trading.OrderHistories{Type:trdconst.ORDERHISTORY, Size:listOrderHistory.Size, Payload:listOrderHistory.OrderHistories}
 		trdListOrderHistoryJson, err := json.Marshal(trdListOrderHistory)
 		if err!=nil{
@@ -396,7 +402,7 @@ func ListenOrderHistory(topic string){
 
 		username := listOrderHistory.Username
 		//log.Println("username : ",username)
-		//log.Debug(trdListOrderHistory)
+		log.Debug("ListenOrderHistory", trdListOrderHistory.Payload[0])
 		websocket.SendMessageToUser(topic, username, string(trdListOrderHistoryJson))
 	}
 }

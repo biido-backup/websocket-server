@@ -16,7 +16,8 @@ type History struct {
 }
 
 type ListHistory struct {
-	Histories 			[]History				`json:"histories"`
+	Rate      	string    `json:"rate"`
+	Histories 	[]History `json:"histories"`
 }
 
 func (listHistory ListHistory) JsonListHistory() (string, error) {
@@ -30,5 +31,5 @@ func (listHistory ListHistory) JsonListHistory() (string, error) {
 
 type TradingListHistory struct {
 	Type 			string 						`json:"type"`
-	Payload			ListHistory						`json:"payload"`
+	Payload			[]History					`json:"payload"`
 }
