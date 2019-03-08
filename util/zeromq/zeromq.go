@@ -279,7 +279,11 @@ func ListenTradingHistory(){
 			log.Error("error when marshal listHistory", err)
 		}
 
-		log.Debug("ListenTradingHistory",trdListHistory.Payload[0])
+		if (trdListHistory.Payload != nil && len(trdListHistory.Payload) > 0){
+			log.Debug("ListenTradingHistory", trdListHistory.Payload[0])
+		} else {
+			log.Debug("ListenTradingHistory", "nil")
+		}
 		cache.SetCacheByTopicAndType(topic, trdconst.TRADINGHISTORY, trdListHistory)
 		websocket.BroadcastMessageWithTopic(topic, string(trdListHistoryJson))
 	}
@@ -340,7 +344,11 @@ func ListenOpenOrder(){
 
 		username := listOpenOrder.Username
 		//log.Println("username : ",username)
-		log.Debug("ListenOpenOrder", trdListOpenOrder.Payload[0])
+		if (trdListOpenOrder.Payload != nil && len(trdListOpenOrder.Payload) > 0){
+			log.Debug("ListenOpenOrder", trdListOpenOrder.Payload[0])
+		} else {
+			log.Debug("ListenOpenOrder", "nil")
+		}
 		websocket.SendMessageToUser(topic, username, string(trdListOpenOrderJson))
 	}
 }
@@ -402,7 +410,11 @@ func ListenOrderHistory(){
 
 		username := listOrderHistory.Username
 		//log.Println("username : ",username)
-		log.Debug("ListenOrderHistory", trdListOrderHistory.Payload[0])
+		if (trdListOrderHistory.Payload != nil && len(trdListOrderHistory.Payload) > 0){
+			log.Debug("ListenOrderHistory", trdListOrderHistory.Payload[0])
+		} else {
+			log.Debug("ListenOrderHistory", "nil")
+		}
 		websocket.SendMessageToUser(topic, username, string(trdListOrderHistoryJson))
 	}
 }
