@@ -9,6 +9,8 @@ import (
 
 type History struct {
 	Id 					uint64					`json:"id"`
+	AskId			sql.NullInt64 			`json:"ask_id"`
+	BidId			sql.NullInt64 			`json:"bid_id"`
 	Amount       		decimal.Decimal			`json:"amount"`
 	Price        		decimal.Decimal			`json:"price"`
 	Type				sql.NullString			`json:"type"`
