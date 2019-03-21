@@ -33,12 +33,12 @@ func InsertToTrollBox(payload reqpayload.TrollBox) {
 	trollBoxJson, _ := json.Marshal(TrollBox)
 	redis.SetValueByKey("TROLL_BOX", trollBoxJson)
 
-	log.Debug("INSERT TO TROLL BOX", TrollBox)
+	//log.Debug("INSERT TO TROLL BOX", TrollBox)
 }
 
 func GetTrollBoxBroadcastMessage() string {
 	broadcastMessage := BroadcastMessage{Type: "TROLL_BOX", Payload: TrollBox}
 	broadcastMessageJson, _ := json.Marshal(broadcastMessage)
-	log.Debug("TROLL BOX BROADCAST MESSAGE", string(broadcastMessageJson))
+	//log.Debug("TROLL BOX BROADCAST MESSAGE", string(broadcastMessageJson))
 	return string(broadcastMessageJson)
 }
