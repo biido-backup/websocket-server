@@ -23,6 +23,8 @@ redis:
   precision:
     key:
       prefix: "PRECISION:"
+  trollbox:
+    key: "TROLL_BOX"
 
 zeromq:
   publisher:
@@ -41,4 +43,7 @@ sockjs:
   path: /ws
 
 tradingchart:
-  quantity: 10
+  size: 10
+
+trollbox:
+  size: 100

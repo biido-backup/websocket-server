@@ -16,7 +16,7 @@ var log = logger.CreateLog("engine")
 
 func ProcessTradingChart(tradingRateList []daos.Rate) {
 	daos.CreateTradingChart()
-	quantity := viper.GetInt64("tradingchart.quantity")
+	size := viper.GetInt64("tradingchart.size")
 
 	//tradingRateList = []daos.Rate{{"BION", "ETH"}}
 	//unitOfTimeList := []string{"1M"}
@@ -27,29 +27,29 @@ func ProcessTradingChart(tradingRateList []daos.Rate) {
 		consumerRateUnitTimeMap[tradingRate.StringDash()] = make(map[string]sarama.PartitionConsumer)
 		for _, unitOfTime := range unitOfTimeList {
 			daos.InitUnitOfTimeTradingChart(tradingRate.StringDash(), unitOfTime)
-			consumerRateUnitTimeMap[tradingRate.StringDash()][unitOfTime] = loadTradingChart(tradingRate, unitOfTime, quantity)
+			consumerRateUnitTimeMap[tradingRate.StringDash()][unitOfTime] = loadTradingChart(tradingRate, unitOfTime, size)
 		}
 	}
 
 	for _, tradingRate := range tradingRateList {
 		for _, unitOfTime := range unitOfTimeList {
-			go maintainTradingChart(tradingRate, unitOfTime, quantity, consumerRateUnitTimeMap[tradingRate.StringDash()][unitOfTime])
+			go maintainTradingChart(tradingRate, unitOfTime, size, consumerRateUnitTimeMap[tradingRate.StringDash()][unitOfTime])
 		}
 	}
 }
 
-func loadTradingChart(rate daos.Rate, unitOfTime string, quantity int64) sarama.PartitionConsumer {
+func loadTradingChart(rate daos.Rate, unitOfTime string, size int64) sarama.PartitionConsumer {
 	var consumer sarama.PartitionConsumer
 
 	kafkaTopic := viper.GetString("kafka.prefix.chart") + unitOfTime + "." + rate.StringDash()
 	brokers := viper.GetStringSlice("kafka.websocket.brokers")
 	client := kafka.CreateClient(brokers)
 
-	chartList := make([]daos.Chart, 0, quantity)
+	chartList := make([]daos.Chart, 0, size)
 	offset := kafka.GetOffsetPartition(client, kafkaTopic, 0)
 
 	if offset > 0 {
-		offsetToConsume := offset - quantity
+		offsetToConsume := offset - size
 		if offsetToConsume < 0 {
 			offsetToConsume = 0
 		}
@@ -74,10 +74,10 @@ func loadTradingChart(rate daos.Rate, unitOfTime string, quantity int64) sarama.
 	return consumer
 }
 
-func maintainTradingChart(rate daos.Rate, unitOfTime string, quantity int64, consumer sarama.PartitionConsumer) {
+func maintainTradingChart(rate daos.Rate, unitOfTime string, size int64, consumer sarama.PartitionConsumer) {
 	for {
 		msg := <- consumer.Messages()
-		daos.InsertChart(rate.StringDash(), unitOfTime, daos.ChartFromJSON(msg.Value), quantity)
+		daos.InsertChart(rate.StringDash(), unitOfTime, daos.ChartFromJSON(msg.Value), size)
 
 		tradingChart := trading.TradingChart{trdconst.TRADINGCHART, []daos.Chart{daos.ChartFromJSON(msg.Value)}}
 		tradingChartJson, _ := json.Marshal(tradingChart)
