@@ -2,12 +2,14 @@ package websocket
 
 import (
 	"encoding/json"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"net/http"
 	"websocket-server/cache"
 	"websocket-server/const/trd"
 	"websocket-server/daos"
+	"websocket-server/daos/reqpayload"
 	"websocket-server/daos/trading"
 	"websocket-server/service"
 	"websocket-server/util/logger"
@@ -45,35 +47,37 @@ func SockjsHandler(session sockjs.Session) {
 
 			var request daos.WebsocketRequest
 			err := json.Unmarshal([]byte(msg), &request)
-
 			if err != nil {
 				log.Error("Failed to deserialize message", err)
 				continue
 			}
 
-			rate := daos.GetRateFromStringDash(request.Topic)
-
 			log.Debug(request)
 
-			if request.Method == "subscribe"{
+			if request.Type == "subscribe"{
+				payload := reqpayload.Trading{}
+				mapstructure.Decode(request.Payload, &payload)
+				rate := daos.GetRateFromStringDash(payload.Topic)
+				log.Debug(payload)
+
 				unsubscribeClientToAllTopic(session.ID())
 				subscribeClientToTopic(request, session)
 
-				str := string("subscribe to : "+ request.Topic)
+				str := string("subscribe to : "+ payload.Topic)
 				session.Send(str)
 
 				//Candle Stick
-				tradingChart := trading.CreateTradingChart(request)
+				tradingChart := trading.CreateTradingChart(payload)
 				tradingChartJson, _ := json.Marshal(tradingChart)
 				session.Send(string(tradingChartJson))
 
 				//Orderbook
-				orderBook := cache.GetCacheByTopicAndType(request.Topic, trdconst.ORDERBOOK).(trading.Orderbook)
+				orderBook := cache.GetCacheByTopicAndType(payload.Topic, trdconst.ORDERBOOK).(trading.Orderbook)
 				orderBookJson, _ := json.Marshal(orderBook)
 				session.Send(string(orderBookJson))
 
 				//TradingHistory
-				tradingHistory := cache.GetCacheByTopicAndType(request.Topic, trdconst.TRADINGHISTORY).(trading.TradingListHistory)
+				tradingHistory := cache.GetCacheByTopicAndType(payload.Topic, trdconst.TRADINGHISTORY).(trading.TradingListHistory)
 				tradingHistoryJson, _ := json.Marshal(tradingHistory)
 				session.Send(string(tradingHistoryJson))
 
@@ -94,7 +98,7 @@ func SockjsHandler(session sockjs.Session) {
 				const offset uint64 = 0
 				const limit int = 5
 				var orderHistories trading.OrderHistories
-				err = service.GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(&orderHistories, request.Username, rate.StringSlah(), offset, limit)
+				err = service.GetOrderHistoriesByUsernameAndRateAndOffsetAndLimit(&orderHistories, payload.Username, rate.StringSlah(), offset, limit)
 				if err != nil {
 					log.Println(err)
 				}
@@ -104,7 +108,7 @@ func SockjsHandler(session sockjs.Session) {
 
 				//OpenOrder
 				var openOrders trading.OpenOrders
-				err = service.GetOpenOrdersByUsernameAndRate(&openOrders, request.Username, rate.StringSlah())
+				err = service.GetOpenOrdersByUsernameAndRate(&openOrders, payload.Username, rate.StringSlah())
 				if err != nil {
 					log.Error(err)
 				}
@@ -112,21 +116,35 @@ func SockjsHandler(session sockjs.Session) {
 				openOrdersJson, _ := json.Marshal(openOrders)
 				session.Send(string(openOrdersJson))
 
+				session.Send(daos.GetTrollBoxBroadcastMessage())
+
 				continue
 
-			} else if request.Method == "reload_openorder" {
+			} else if request.Type == "reload_openorder" {
+				payload := reqpayload.Trading{}
+				mapstructure.Decode(request.Payload, &payload)
+				rate := daos.GetRateFromStringDash(payload.Topic)
+
 				//OpenOrder
-				if checkIfSubscribed(request.Topic, request.Username, session.ID()){
+				if checkIfSubscribed(payload.Topic, payload.Username, session.ID()){
 					log.Debug("SockjsHandler", "RELOAD OPEN ORDER")
 					var openOrders trading.OpenOrders
-					err = service.GetOpenOrdersByUsernameAndRate(&openOrders, request.Username, rate.StringSlah())
+					err = service.GetOpenOrdersByUsernameAndRate(&openOrders, payload.Username, rate.StringSlah())
 					if err != nil {
 						log.Error(err)
 					}
 					openOrders.Type = trdconst.OPENORDER
 					openOrdersJson, _ := json.Marshal(openOrders)
-					SendMessageToUser(request.Topic, request.Username, string(openOrdersJson))
+					SendMessageToUser(payload.Topic, payload.Username, string(openOrdersJson))
 				}
+				continue
+			} else if request.Type == "troll_box_send_message" {
+				payload := reqpayload.TrollBox{}
+				mapstructure.Decode(request.Payload, &payload)
+
+				daos.InsertToTrollBox(payload)
+				BroadcastMessageToAll(daos.GetTrollBoxBroadcastMessage())
+
 				continue
 			}
 		}

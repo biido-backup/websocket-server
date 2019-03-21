@@ -54,6 +54,7 @@ func main(){
 
 	go zeromq.Listen()
 	go engine.ProcessTradingChart(tradingRateList)
+	daos.CreateTrollBox()
 
 	err := websocket.ServeSocket()
 	if err != nil {

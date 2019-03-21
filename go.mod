@@ -13,6 +13,7 @@ require (
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/lib/pq v1.0.0
 	github.com/linkedin/goavro v2.1.0+incompatible
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967

@@ -1,8 +1,10 @@
 package daos
 
 import (
-	"sync"
+	"github.com/mitchellh/mapstructure"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"sync"
+	"websocket-server/daos/reqpayload"
 	"websocket-server/util/logger"
 )
 
@@ -196,42 +198,44 @@ func (clients Clients) SetTopic(topic string) {
 }
 
 func (clients Clients) AddSubscriber(request WebsocketRequest,session sockjs.Session){
+	payload := reqpayload.Trading{}
+	mapstructure.Decode(request.Payload, &payload)
 
-	if !clients.CheckIfTopicExists(request.Topic) {
+	if !clients.CheckIfTopicExists(payload.Topic) {
 		log.Error("Topic doesnt exists")
 		return
 	}
 
 	//CLients
-	clientSession := clients.GetListSessionByTopicAndUsername(request.Topic, request.Username)
+	clientSession := clients.GetListSessionByTopicAndUsername(payload.Topic, payload.Username)
 	if clientSession == nil{
 		clients.muClients.Lock()
-		clients.Clients[request.Topic][request.Username] = make(map[string] sockjs.Session)
+		clients.Clients[payload.Topic][payload.Username] = make(map[string] sockjs.Session)
 		clients.muClients.Unlock()
 	}
 	clients.muClients.Lock()
-	clients.Clients[request.Topic][request.Username][session.ID()] = session
+	clients.Clients[payload.Topic][payload.Username][session.ID()] = session
 	clients.muClients.Unlock()
 
 	//ClientSession
 	clients.muClientsSessions.Lock()
-	clients.ClientSessions[request.Topic][session.ID()] = request.Username
+	clients.ClientSessions[payload.Topic][session.ID()] = payload.Username
 	clients.muClientsSessions.Unlock()
 
 	//Interval
-	intervalSession := clients.GetListSessionByTopicAndInterval(request.Topic, request.Interval)
+	intervalSession := clients.GetListSessionByTopicAndInterval(payload.Topic, payload.Interval)
 	if intervalSession == nil{
 		clients.muIntervals.Lock()
-		clients.Intervals[request.Topic][request.Interval] = make(map[string] sockjs.Session)
+		clients.Intervals[payload.Topic][payload.Interval] = make(map[string] sockjs.Session)
 		clients.muIntervals.Unlock()
 	}
 	clients.muIntervals.Lock()
-	clients.Intervals[request.Topic][request.Interval][session.ID()] = session
+	clients.Intervals[payload.Topic][payload.Interval][session.ID()] = session
 	clients.muIntervals.Unlock()
 
 	//Interval Session
 	clients.muIntervalSessions.Lock()
-	clients.IntervalSessions[request.Topic][session.ID()] = request.Interval
+	clients.IntervalSessions[payload.Topic][session.ID()] = payload.Interval
 	clients.muIntervalSessions.Unlock()
 }
 
